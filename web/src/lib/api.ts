@@ -338,9 +338,53 @@ export const notificationsApi = {
 // SEARCH API
 // ============================================
 
+export interface SearchResults {
+  users: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    headline: string | null;
+    avatarUrl: string | null;
+    connectionCount?: number;
+  }>;
+  posts: Array<{
+    id: string;
+    content: string;
+    author: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      avatarUrl: string | null;
+    };
+    _count: { comments: number; reactions: number };
+  }>;
+  jobs: Array<{
+    id: string;
+    title: string;
+    location: string | null;
+    company: {
+      id: string;
+      name: string;
+      logoUrl: string | null;
+    } | null;
+  }>;
+  companies: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    logoUrl: string | null;
+    industry: string | null;
+    _count: { jobs: number };
+  }>;
+}
+
+export interface TrendingResults {
+  trending: string[];
+}
+
 export const searchApi = {
   search: (q: string, type?: string) =>
-    api.get(`/api/search?q=${encodeURIComponent(q)}${type ? `&type=${type}` : ''}`),
+    api.get<SearchResults>(`/api/search?q=${encodeURIComponent(q)}${type ? `&type=${type}` : ''}`),
 
-  trending: () => api.get('/api/search/trending'),
+  trending: () => api.get<TrendingResults>('/api/search/trending'),
 };

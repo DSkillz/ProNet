@@ -18,6 +18,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { GlobalSearch } from "@/components/search/GlobalSearch";
 
 const navItems = [
   { href: "/feed", label: "Accueil", icon: Home },
@@ -56,12 +57,8 @@ export function Navbar() {
             </Link>
 
             {/* Search Desktop */}
-            <div className="hidden md:block relative w-72">
-              <Input
-                placeholder="Rechercher..."
-                className="pl-10 py-2 text-sm"
-                icon={<Search className="h-4 w-4" />}
-              />
+            <div className="hidden md:block w-80">
+              <GlobalSearch placeholder="Rechercher..." />
             </div>
 
             {/* Search Mobile Toggle */}
@@ -168,10 +165,10 @@ export function Navbar() {
         {/* Mobile Search */}
         {isSearchOpen && (
           <div className="md:hidden pb-3 animate-slide-up">
-            <Input
+            <GlobalSearch 
               placeholder="Rechercher des personnes, emplois, entreprises..."
-              icon={<Search className="h-4 w-4" />}
-              autoFocus
+              isMobile
+              onClose={() => setIsSearchOpen(false)}
             />
           </div>
         )}
