@@ -147,7 +147,10 @@ export function EditProfileModal({ isOpen, onClose, user, onProfileUpdated }: Ed
         onClick={onClose}
       />
 
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-auto">
+      <div
+        className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-auto z-10"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-neutral-200 sticky top-0 bg-white z-10">
           <h2 className="text-lg font-semibold text-neutral-900">Modifier le profil</h2>
