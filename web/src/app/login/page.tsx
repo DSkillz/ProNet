@@ -121,7 +121,10 @@ export default function LoginPage() {
 
             {/* Boutons OAuth */}
             <div className="space-y-3 mb-6">
-              <button className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors">
+              <a 
+                href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/google`}
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors"
+              >
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
                   <path
                     fill="#4285F4"
@@ -143,14 +146,17 @@ export default function LoginPage() {
                 <span className="font-medium text-neutral-700">
                   Continuer avec Google
                 </span>
-              </button>
+              </a>
 
-              <button className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors">
+              <a 
+                href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/github`}
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors"
+              >
                 <Github className="h-5 w-5" />
                 <span className="font-medium text-neutral-700">
                   Continuer avec GitHub
                 </span>
-              </button>
+              </a>
             </div>
 
             {/* Séparateur */}

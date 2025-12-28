@@ -21,11 +21,16 @@ model User {
   emailVerified     Boolean   @default(false)
   emailVerifiedAt   DateTime?
   
+  // OAuth
+  provider          String?   // google, github, etc.
+  providerId        String?   // ID du provider OAuth
+  
   // Profil de base
   firstName         String
   lastName          String
   headline          String?
   about             String?
+  avatar            String?   // URL de l'avatar (alias pour compatibilité OAuth)
   avatarUrl         String?
   bannerUrl         String?
   location          String?

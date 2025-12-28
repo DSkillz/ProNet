@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
+import passport from '../lib/passport';
 import { 
   hashPassword, 
   comparePasswords, 
@@ -257,6 +258,80 @@ router.get(
     }
 
     res.json(user);
+  })
+);
+
+// ============================================
+// OAUTH - GOOGLE
+// ============================================
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+router.get(
+  '/google/callback',
+  passport.authenticate('google', { session: false, failureRedirect: '/login?error=google_auth_failed' }),
+  asyncHandler(async (req: AuthRequest, res: any) => {
+    const user = req.user as any;
+    
+    if (!user) {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=google_auth_failed`);
+    }
+
+    // Générer les tokens
+    const accessToken = generateAccessToken({ userId: user.id, email: user.email });
+    const refreshToken = generateRefreshToken();
+
+    // Sauvegarder la session
+    await prisma.session.create({
+      data: {
+        userId: user.id,
+        token: accessToken,
+        refreshToken,
+        expiresAt: getRefreshTokenExpiry(),
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      },
+    });
+
+    // Rediriger vers le frontend avec les tokens
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/auth/callback?token=${accessToken}&refreshToken=${refreshToken}`);
+  })
+);
+
+// ============================================
+// OAUTH - GITHUB
+// ============================================
+router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
+
+router.get(
+  '/github/callback',
+  passport.authenticate('github', { session: false, failureRedirect: '/login?error=github_auth_failed' }),
+  asyncHandler(async (req: AuthRequest, res: any) => {
+    const user = req.user as any;
+    
+    if (!user) {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=github_auth_failed`);
+    }
+
+    // Générer les tokens
+    const accessToken = generateAccessToken({ userId: user.id, email: user.email });
+    const refreshToken = generateRefreshToken();
+
+    // Sauvegarder la session
+    await prisma.session.create({
+      data: {
+        userId: user.id,
+        token: accessToken,
+        refreshToken,
+        expiresAt: getRefreshTokenExpiry(),
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+      },
+    });
+
+    // Rediriger vers le frontend avec les tokens
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/auth/callback?token=${accessToken}&refreshToken=${refreshToken}`);
   })
 );
 

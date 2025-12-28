@@ -17,6 +17,7 @@ interface AuthContextType {
   }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateUser: (user: User) => void;
+  setTokens: (accessToken: string, refreshToken: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -102,6 +103,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(updatedUser);
   };
 
+  const setTokens = async (accessToken: string, refreshToken: string) => {
+    api.setToken(accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
+    
+    // Charger les informations de l'utilisateur
+    const { data } = await authApi.me();
+    if (data) {
+      setUser(data);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -112,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         updateUser,
+        setTokens,
       }}
     >
       {children}
