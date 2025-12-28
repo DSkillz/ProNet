@@ -14,55 +14,38 @@ import {
   X,
   Loader2,
   RefreshCw,
+  UserPlus,
 } from "lucide-react";
 import Link from "next/link";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
-import { postsApi, Post } from "@/lib/api";
+import { postsApi, Post, connectionsApi, jobsApi, externalApi, NewsItem } from "@/lib/api";
 import { CreatePostModal, PostCard } from "@/components/posts";
 
-const suggestedConnections = [
-  {
-    name: "Léa Dubois",
-    title: "UX Designer @DesignStudio",
-    mutualConnections: 12,
-  },
-  {
-    name: "Pierre Martin",
-    title: "CTO @StartupXYZ",
-    mutualConnections: 8,
-  },
-  {
-    name: "Julie Chen",
-    title: "Data Scientist @DataCorp",
-    mutualConnections: 5,
-  },
-];
+interface SuggestedUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  headline?: string;
+  avatarUrl?: string;
+  connectionCount?: number;
+}
 
-const trendingTopics = [
-  { name: "#OpenSource", posts: "2,345 publications" },
-  { name: "#TechRecrutement", posts: "1,892 publications" },
-  { name: "#RemoteWork", posts: "1,456 publications" },
-  { name: "#TypeScript", posts: "987 publications" },
-  { name: "#GreenIT", posts: "654 publications" },
-];
+interface JobSuggestion {
+  id: string;
+  title: string;
+  company: {
+    name: string;
+    logoUrl?: string;
+  };
+  location?: string;
+}
 
-const newsItems = [
-  {
-    title: "Les tendances tech pour 2025",
-    source: "ProNet Actualités",
-    timeAgo: "3h",
-  },
-  {
-    title: "L'IA générative transforme le recrutement",
-    source: "Tech Insights",
-    timeAgo: "6h",
-  },
-  {
-    title: "Le remote work devient la norme en Europe",
-    source: "Future of Work",
-    timeAgo: "12h",
-  },
+const defaultTrendingTopics = [
+  { name: "#TechJobs", posts: "1.2k posts" },
+  { name: "#RemoteWork", posts: "890 posts" },
+  { name: "#Carrière", posts: "654 posts" },
+  { name: "#Innovation", posts: "432 posts" },
 ];
 
 export default function FeedPage() {
@@ -73,6 +56,10 @@ export default function FeedPage() {
   const [error, setError] = useState("");
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [suggestedConnections, setSuggestedConnections] = useState<SuggestedUser[]>([]);
+  const [jobSuggestions, setJobSuggestions] = useState<JobSuggestion[]>([]);
+  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
+  const [trendingTopics, setTrendingTopics] = useState(defaultTrendingTopics);
 
   const userName = user ? `${user.firstName} ${user.lastName}` : "Utilisateur";
 
@@ -105,6 +92,58 @@ export default function FeedPage() {
     fetchPosts();
   }, [fetchPosts]);
 
+  // Fetch connection suggestions
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      const result = await connectionsApi.getSuggestions();
+      if (result.data) {
+        // Map the API response to our interface
+        const suggestions = (result.data as any).suggestions || result.data;
+        if (Array.isArray(suggestions)) {
+          setSuggestedConnections(suggestions.slice(0, 3).map((s: any) => ({
+            id: s.id,
+            firstName: s.firstName,
+            lastName: s.lastName,
+            headline: s.headline,
+            avatarUrl: s.avatarUrl,
+            connectionCount: s.mutualConnections || s._count?.connections || 0,
+          })));
+        }
+      }
+    };
+    fetchSuggestions();
+  }, []);
+
+  // Fetch job suggestions
+  useEffect(() => {
+    const fetchJobs = async () => {
+      const result = await jobsApi.getAll({ });
+      if (result.data?.jobs) {
+        setJobSuggestions(result.data.jobs.slice(0, 2).map((j) => ({
+          id: j.id,
+          title: j.title,
+          company: {
+            name: j.company?.name || "Entreprise",
+            logoUrl: j.company?.logoUrl,
+          },
+          location: j.location,
+        })));
+      }
+    };
+    fetchJobs();
+  }, []);
+
+  // Fetch news from RSS feeds
+  useEffect(() => {
+    const fetchNews = async () => {
+      const result = await externalApi.getNews({ limit: 5 });
+      if (result.data?.items) {
+        setNewsItems(result.data.items);
+      }
+    };
+    fetchNews();
+  }, []);
+
   const handlePostCreated = () => {
     fetchPosts(); // Refresh the feed
   };
@@ -123,20 +162,23 @@ export default function FeedPage() {
             {/* Sidebar gauche - Mini profil */}
             <aside className="hidden lg:block">
               <Card padding="none" className="overflow-hidden">
-                <div className="h-16 bg-gradient-to-r from-primary-400 to-primary-600" />
+                <div
+                  className="h-16 bg-gradient-to-r from-primary-400 to-primary-600"
+                  style={user?.bannerUrl ? { backgroundImage: `url(${user.bannerUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+                />
                 <div className="px-4 pb-4 -mt-8 text-center">
-                  <Avatar name={userName} size="lg" className="ring-4 ring-white mx-auto" />
+                  <Avatar name={userName} src={user?.avatarUrl} size="lg" className="ring-4 ring-white mx-auto" />
                   <h3 className="mt-2 font-semibold text-neutral-900">{userName}</h3>
                   <p className="text-sm text-neutral-500">{user?.headline || "Membre ProNet"}</p>
 
                   <div className="mt-4 pt-4 border-t border-neutral-100">
                     <div className="flex justify-between text-sm">
-                      <span className="text-neutral-500">Vues du profil</span>
-                      <span className="font-semibold text-primary-500">284</span>
+                      <span className="text-neutral-500">Connexions</span>
+                      <span className="font-semibold text-primary-500">{user?.connectionCount || 0}</span>
                     </div>
                     <div className="flex justify-between text-sm mt-2">
-                      <span className="text-neutral-500">Connexions</span>
-                      <span className="font-semibold text-primary-500">523</span>
+                      <span className="text-neutral-500">Publications</span>
+                      <span className="font-semibold text-primary-500">{user?.postsCount || 0}</span>
                     </div>
                   </div>
 
@@ -306,19 +348,29 @@ export default function FeedPage() {
               {/* Actualités */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Actualités ProNet</CardTitle>
+                  <CardTitle className="text-base">Actualités</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {newsItems.map((news, index) => (
-                    <Link key={index} href={`/search?q=${encodeURIComponent(news.title)}`} className="block group">
-                      <h4 className="text-sm font-medium text-neutral-900 group-hover:text-primary-500 transition-colors">
-                        {news.title}
-                      </h4>
-                      <p className="text-xs text-neutral-500 mt-0.5">
-                        {news.source} • {news.timeAgo}
-                      </p>
-                    </Link>
-                  ))}
+                  {newsItems.length === 0 ? (
+                    <p className="text-sm text-neutral-500 text-center py-2">Chargement des actualités...</p>
+                  ) : (
+                    newsItems.map((news, index) => (
+                      <a
+                        key={index}
+                        href={news.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block group"
+                      >
+                        <h4 className="text-sm font-medium text-neutral-900 group-hover:text-primary-500 transition-colors line-clamp-2">
+                          {news.title}
+                        </h4>
+                        <p className="text-xs text-neutral-500 mt-0.5">
+                          {news.source} • {news.timeAgo}
+                        </p>
+                      </a>
+                    ))
+                  )}
                 </CardContent>
               </Card>
 
@@ -347,24 +399,35 @@ export default function FeedPage() {
                   <CardTitle className="text-base">Développez votre réseau</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {suggestedConnections.map((person, index) => (
-                    <div key={index} className="flex items-start gap-3">
-                      <Avatar name={person.name} size="md" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-neutral-900 truncate">{person.name}</p>
-                        <p className="text-sm text-neutral-500 truncate">{person.title}</p>
-                        <p className="text-xs text-neutral-400 mt-0.5">
-                          {person.mutualConnections} relations en commun
-                        </p>
-                        <Button size="sm" variant="secondary" className="mt-2">
-                          Se connecter
-                        </Button>
+                  {suggestedConnections.length === 0 ? (
+                    <p className="text-sm text-neutral-500 text-center py-4">
+                      Aucune suggestion pour le moment
+                    </p>
+                  ) : (
+                    suggestedConnections.map((person) => (
+                      <div key={person.id} className="flex items-start gap-3">
+                        <Avatar name={`${person.firstName} ${person.lastName}`} src={person.avatarUrl} size="md" />
+                        <div className="flex-1 min-w-0">
+                          <Link href={`/profile/${person.id}`} className="font-medium text-neutral-900 truncate hover:text-primary-500">
+                            {person.firstName} {person.lastName}
+                          </Link>
+                          <p className="text-sm text-neutral-500 truncate">{person.headline || "Membre ProNet"}</p>
+                          {person.connectionCount && person.connectionCount > 0 && (
+                            <p className="text-xs text-neutral-400 mt-0.5">
+                              {person.connectionCount} relations en commun
+                            </p>
+                          )}
+                          <Button size="sm" variant="secondary" className="mt-2">
+                            <UserPlus className="h-4 w-4 mr-1" />
+                            Se connecter
+                          </Button>
+                        </div>
+                        <button className="p-1 hover:bg-neutral-100 rounded">
+                          <X className="h-4 w-4 text-neutral-400" />
+                        </button>
                       </div>
-                      <button className="p-1 hover:bg-neutral-100 rounded">
-                        <X className="h-4 w-4 text-neutral-400" />
-                      </button>
-                    </div>
-                  ))}
+                    ))
+                  )}
                   <Link href="/network" className="block text-center text-sm text-primary-500 hover:underline">
                     Voir plus de suggestions
                   </Link>
@@ -377,24 +440,31 @@ export default function FeedPage() {
                   <CardTitle className="text-base">Offres pour vous</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {[
-                    { title: "Lead Developer Frontend", company: "TechStartup", location: "Paris" },
-                    { title: "Senior React Developer", company: "WebAgency", location: "Remote" },
-                  ].map((job, index) => (
-                    <a key={index} href="#" className="flex items-start gap-3 group">
-                      <div className="w-10 h-10 bg-neutral-100 rounded flex items-center justify-center">
-                        <Briefcase className="h-5 w-5 text-neutral-400" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-neutral-900 group-hover:text-primary-500 transition-colors">
-                          {job.title}
-                        </p>
-                        <p className="text-sm text-neutral-500">
-                          {job.company} • {job.location}
-                        </p>
-                      </div>
-                    </a>
-                  ))}
+                  {jobSuggestions.length === 0 ? (
+                    <p className="text-sm text-neutral-500 text-center py-4">
+                      Aucune offre pour le moment
+                    </p>
+                  ) : (
+                    jobSuggestions.map((job) => (
+                      <Link key={job.id} href={`/jobs/${job.id}`} className="flex items-start gap-3 group">
+                        <div className="w-10 h-10 bg-neutral-100 rounded flex items-center justify-center overflow-hidden">
+                          {job.company.logoUrl ? (
+                            <img src={job.company.logoUrl} alt={job.company.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <Briefcase className="h-5 w-5 text-neutral-400" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium text-neutral-900 group-hover:text-primary-500 transition-colors">
+                            {job.title}
+                          </p>
+                          <p className="text-sm text-neutral-500">
+                            {job.company.name}{job.location ? ` • ${job.location}` : ""}
+                          </p>
+                        </div>
+                      </Link>
+                    ))
+                  )}
                   <Link href="/jobs" className="block text-center text-sm text-primary-500 hover:underline">
                     Voir toutes les offres
                   </Link>

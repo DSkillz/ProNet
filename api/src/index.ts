@@ -23,6 +23,7 @@ import companyRoutes from './routes/company.routes';
 import followRoutes from './routes/follow.routes';
 import uploadRoutes from './routes/upload.routes';
 import adminRoutes from './routes/admin.routes';
+import externalRoutes from './routes/external.routes';
 
 // Middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -103,6 +104,7 @@ app.use('/api/companies', companyRoutes);
 app.use('/api/follow', followRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/external', externalRoutes);
 
 // Error handling
 app.use(errorHandler);

@@ -114,6 +114,10 @@ export interface User {
   about?: string;
   isOpenToWork?: boolean;
   isHiring?: boolean;
+  connectionCount?: number;
+  followersCount?: number;
+  followingCount?: number;
+  postsCount?: number;
 }
 
 export interface AuthResponse {
@@ -437,6 +441,81 @@ export const searchApi = {
     api.get<SearchResults>(`/api/search?q=${encodeURIComponent(q)}${type ? `&type=${type}` : ''}`),
 
   trending: () => api.get<TrendingResults>('/api/search/trending'),
+};
+
+// ============================================
+// EXTERNAL API (France Travail, RSS)
+// ============================================
+
+export interface ExternalJob {
+  id: string;
+  title: string;
+  description: string;
+  location: string | null;
+  locationType: string;
+  employmentType: string;
+  experienceLevel: string;
+  salary: string | null;
+  company: {
+    name: string;
+    logoUrl: string | null;
+  };
+  source: 'france_travail';
+  externalUrl: string | null;
+  createdAt: string;
+}
+
+export interface NewsItem {
+  title: string;
+  link: string;
+  description: string;
+  source: string;
+  category: string;
+  timeAgo: string;
+  imageUrl?: string;
+}
+
+export const externalApi = {
+  // France Travail
+  getFranceTravailJobs: (params?: {
+    q?: string;
+    departement?: string;
+    region?: string;
+    typeContrat?: string;
+    limit?: number;
+  }) => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) searchParams.set(key, String(value));
+      });
+    }
+    return api.get<{ jobs: ExternalJob[]; total: number; source: string }>(
+      `/api/external/jobs/france-travail?${searchParams.toString()}`
+    );
+  },
+
+  getFranceTravailJob: (id: string) =>
+    api.get<ExternalJob>(`/api/external/jobs/france-travail/${id}`),
+
+  // News RSS
+  getNews: (params?: { category?: string; limit?: number; refresh?: boolean }) => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) searchParams.set(key, String(value));
+      });
+    }
+    return api.get<{ items: NewsItem[]; lastUpdated: string }>(
+      `/api/external/news?${searchParams.toString()}`
+    );
+  },
+
+  getNewsCategories: () =>
+    api.get<{ categories: string[] }>('/api/external/news/categories'),
+
+  getNewsSources: () =>
+    api.get<{ sources: Array<{ name: string; category: string }> }>('/api/external/news/sources'),
 };
 
 // ============================================
