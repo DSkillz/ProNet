@@ -205,6 +205,8 @@ export const postsApi = {
 
   getPost: (id: string) => api.get<Post>(`/api/posts/${id}`),
 
+  getById: (id: string) => api.get<Post>(`/api/posts/${id}`),
+
   create: (data: { content: string; visibility?: string }) =>
     api.post<Post>('/api/posts', data),
 
@@ -217,6 +219,8 @@ export const postsApi = {
     api.post(`/api/posts/${id}/reactions`, { type }),
 
   removeReaction: (id: string) => api.delete(`/api/posts/${id}/reactions`),
+
+  unreact: (id: string) => api.delete(`/api/posts/${id}/reactions`),
 
   comment: (id: string, content: string, parentId?: string) =>
     api.post(`/api/posts/${id}/comments`, { content, parentId }),
@@ -273,6 +277,8 @@ export const jobsApi = {
 
   getJob: (id: string) => api.get<Job>(`/api/jobs/${id}`),
 
+  getById: (id: string) => api.get<Job>(`/api/jobs/${id}`),
+
   apply: (id: string, data?: { coverLetter?: string }) =>
     api.post(`/api/jobs/${id}/apply`, data),
 
@@ -291,6 +297,8 @@ export const connectionsApi = {
   getPending: () => api.get('/api/connections/pending'),
 
   getSuggestions: () => api.get('/api/connections/suggestions'),
+
+  getStatus: (userId: string) => api.get<{ status: string | null }>(`/api/connections/status/${userId}`),
 
   send: (receiverId: string, message?: string) =>
     api.post('/api/connections', { receiverId, message }),
