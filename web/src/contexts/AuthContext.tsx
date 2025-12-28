@@ -17,6 +17,7 @@ interface AuthContextType {
   }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateUser: (user: User) => void;
+  refreshUser: () => Promise<void>;
   setTokens: (accessToken: string, refreshToken: string) => Promise<void>;
 }
 
@@ -62,7 +63,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data) {
       api.setToken(data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
-      setUser(data.user);
+
+      // Récupérer les données complètes avec les compteurs
+      const { data: userData } = await authApi.me();
+      if (userData) {
+        setUser(userData);
+      } else {
+        setUser(data.user);
+      }
       return { success: true };
     }
 
@@ -84,7 +92,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data) {
       api.setToken(data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
-      setUser(data.user);
+
+      // Récupérer les données complètes avec les compteurs
+      const { data: userData } = await authApi.me();
+      if (userData) {
+        setUser(userData);
+      } else {
+        setUser(data.user);
+      }
       return { success: true };
     }
 
@@ -101,6 +116,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateUser = (updatedUser: User) => {
     setUser(updatedUser);
+  };
+
+  const refreshUser = async () => {
+    const { data } = await authApi.me();
+    if (data) {
+      setUser(data);
+    }
   };
 
   const setTokens = async (accessToken: string, refreshToken: string) => {
@@ -124,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         updateUser,
+        refreshUser,
         setTokens,
       }}
     >

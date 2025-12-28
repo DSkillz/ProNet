@@ -54,7 +54,7 @@ const formatCount = (count: number): string => {
 };
 
 export default function FeedPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -166,6 +166,7 @@ export default function FeedPage() {
 
   const handlePostCreated = () => {
     fetchPosts(); // Refresh the feed
+    refreshUser(); // Update user stats (post count)
   };
 
   const handleRefresh = () => {

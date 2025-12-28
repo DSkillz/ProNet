@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button, Input, Avatar } from "@/components/ui";
 import {
@@ -19,20 +19,40 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { GlobalSearch } from "@/components/search/GlobalSearch";
-
-const navItems = [
-  { href: "/feed", label: "Accueil", icon: Home },
-  { href: "/network", label: "Réseau", icon: Users },
-  { href: "/jobs", label: "Emplois", icon: Briefcase },
-  { href: "/messages", label: "Messages", icon: MessageSquare, badge: 3 },
-  { href: "/notifications", label: "Notifications", icon: Bell, badge: 12 },
-];
+import { messagesApi, notificationsApi } from "@/lib/api";
 
 export function Navbar() {
   const { user: authUser, logout, isAuthenticated } = useAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  // Récupérer les compteurs de messages et notifications non lus
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const fetchCounts = async () => {
+      const [messagesResult, notificationsResult] = await Promise.all([
+        messagesApi.getUnreadCount(),
+        notificationsApi.getUnreadCount(),
+      ]);
+
+      if (messagesResult.data) {
+        setUnreadMessages(messagesResult.data.count);
+      }
+      if (notificationsResult.data) {
+        setUnreadNotifications(notificationsResult.data.count);
+      }
+    };
+
+    fetchCounts();
+
+    // Rafraîchir les compteurs toutes les 30 secondes
+    const interval = setInterval(fetchCounts, 30000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   // Utiliser l'utilisateur authentifié ou des valeurs par défaut
   const user = {
@@ -40,6 +60,14 @@ export function Navbar() {
     title: authUser?.headline || "Membre ProNet",
     avatar: authUser?.avatarUrl || null,
   };
+
+  const navItems = [
+    { href: "/feed", label: "Accueil", icon: Home },
+    { href: "/network", label: "Réseau", icon: Users },
+    { href: "/jobs", label: "Emplois", icon: Briefcase },
+    { href: "/messages", label: "Messages", icon: MessageSquare, badge: unreadMessages },
+    { href: "/notifications", label: "Notifications", icon: Bell, badge: unreadNotifications },
+  ];
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-neutral-200 shadow-nav">
@@ -80,7 +108,7 @@ export function Navbar() {
               >
                 <div className="relative">
                   <item.icon className="h-5 w-5" />
-                  {item.badge && (
+                  {item.badge > 0 && (
                     <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
                       {item.badge > 9 ? "9+" : item.badge}
                     </span>
@@ -186,7 +214,7 @@ export function Navbar() {
               >
                 <item.icon className="h-5 w-5" />
                 <span>{item.label}</span>
-                {item.badge && (
+                {item.badge > 0 && (
                   <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
                     {item.badge}
                   </span>
