@@ -105,29 +105,29 @@ export default function HomePage() {
             </Link>
 
             <nav className="hidden md:flex items-center gap-8">
-              <Link
-                href="/features"
+              <a
+                href="#features"
                 className="text-neutral-600 hover:text-primary-500 transition-colors font-medium"
               >
                 Fonctionnalités
-              </Link>
-              <Link
-                href="/pricing"
+              </a>
+              <a
+                href="#testimonials"
                 className="text-neutral-600 hover:text-primary-500 transition-colors font-medium"
               >
-                Tarifs
-              </Link>
-              <Link
-                href="/open-source"
+                Témoignages
+              </a>
+              <a
+                href="#open-source"
                 className="text-neutral-600 hover:text-primary-500 transition-colors font-medium"
               >
                 Open Source
-              </Link>
+              </a>
               <Link
-                href="/blog"
+                href="/about"
                 className="text-neutral-600 hover:text-primary-500 transition-colors font-medium"
               >
-                Blog
+                À propos
               </Link>
             </nav>
 
@@ -277,7 +277,7 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-white">
+      <section id="features" className="py-20 bg-white scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-neutral-900">
@@ -362,7 +362,7 @@ export default function HomePage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 bg-white">
+      <section id="testimonials" className="py-20 bg-white scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-neutral-900">
@@ -410,7 +410,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-primary-500 to-primary-600">
+      <section id="open-source" className="py-20 bg-gradient-to-r from-primary-500 to-primary-600 scroll-mt-20">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <Zap className="h-16 w-16 text-white/80 mx-auto mb-6" />
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">

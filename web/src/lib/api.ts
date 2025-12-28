@@ -207,7 +207,7 @@ export const postsApi = {
 
   getById: (id: string) => api.get<Post>(`/api/posts/${id}`),
 
-  create: (data: { content: string; visibility?: string }) =>
+  create: (data: { content: string; visibility?: string; media?: Array<{ url: string; type: string }> }) =>
     api.post<Post>('/api/posts', data),
 
   update: (id: string, data: { content?: string; visibility?: string }) =>

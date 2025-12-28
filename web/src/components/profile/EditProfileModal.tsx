@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { X, Loader2, Camera, ImagePlus } from "lucide-react";
 import { Button, Input, Avatar } from "@/components/ui";
-import { User, usersApi } from "@/lib/api";
+import { User, usersApi, uploadApi } from "@/lib/api";
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -20,8 +20,15 @@ export function EditProfileModal({ isOpen, onClose, user, onProfileUpdated }: Ed
     location: user.location || "",
     about: user.about || "",
   });
+  const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl || "");
+  const [bannerUrl, setBannerUrl] = useState(user.bannerUrl || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [error, setError] = useState("");
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -32,8 +39,79 @@ export function EditProfileModal({ isOpen, onClose, user, onProfileUpdated }: Ed
         location: user.location || "",
         about: user.about || "",
       });
+      setAvatarUrl(user.avatarUrl || "");
+      setBannerUrl(user.bannerUrl || "");
+      setError("");
     }
   }, [isOpen, user]);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError("Veuillez sélectionner une image");
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("L'image ne doit pas dépasser 5 Mo");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    setError("");
+
+    const result = await uploadApi.uploadAvatar(file);
+
+    if (result.error) {
+      setError(result.error);
+    } else if (result.data) {
+      setAvatarUrl(result.data.avatarUrl);
+    }
+
+    setIsUploadingAvatar(false);
+    // Reset input
+    if (avatarInputRef.current) {
+      avatarInputRef.current.value = "";
+    }
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError("Veuillez sélectionner une image");
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("L'image ne doit pas dépasser 5 Mo");
+      return;
+    }
+
+    setIsUploadingBanner(true);
+    setError("");
+
+    const result = await uploadApi.uploadBanner(file);
+
+    if (result.error) {
+      setError(result.error);
+    } else if (result.data) {
+      setBannerUrl(result.data.bannerUrl);
+    }
+
+    setIsUploadingBanner(false);
+    // Reset input
+    if (bannerInputRef.current) {
+      bannerInputRef.current.value = "";
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +127,12 @@ export function EditProfileModal({ isOpen, onClose, user, onProfileUpdated }: Ed
     }
 
     if (result.data) {
-      onProfileUpdated(result.data);
+      // Merge the uploaded URLs with the returned data
+      onProfileUpdated({
+        ...result.data,
+        avatarUrl: avatarUrl || result.data.avatarUrl,
+        bannerUrl: bannerUrl || result.data.bannerUrl,
+      });
     }
     setIsSubmitting(false);
     onClose();
@@ -59,14 +142,14 @@ export function EditProfileModal({ isOpen, onClose, user, onProfileUpdated }: Ed
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div 
+      <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
-      
+
       <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-neutral-200 sticky top-0 bg-white">
+        <div className="flex items-center justify-between p-4 border-b border-neutral-200 sticky top-0 bg-white z-10">
           <h2 className="text-lg font-semibold text-neutral-900">Modifier le profil</h2>
           <button
             onClick={onClose}
@@ -77,8 +160,58 @@ export function EditProfileModal({ isOpen, onClose, user, onProfileUpdated }: Ed
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          <div className="flex justify-center mb-4">
-            <Avatar name={`${formData.firstName} ${formData.lastName}`} size="xl" />
+          {/* Banner Upload */}
+          <div className="relative">
+            <div
+              className="h-24 rounded-lg bg-gradient-to-r from-primary-400 to-primary-600 overflow-hidden cursor-pointer group"
+              onClick={() => bannerInputRef.current?.click()}
+              style={bannerUrl ? { backgroundImage: `url(${bannerUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+            >
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                {isUploadingBanner ? (
+                  <Loader2 className="h-6 w-6 text-white animate-spin" />
+                ) : (
+                  <ImagePlus className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
+              </div>
+            </div>
+            <input
+              ref={bannerInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={handleBannerUpload}
+              className="hidden"
+            />
+            <p className="text-xs text-neutral-500 mt-1 text-center">Cliquez pour modifier la bannière</p>
+          </div>
+
+          {/* Avatar Upload */}
+          <div className="flex flex-col items-center -mt-12 relative z-10">
+            <div
+              className="relative cursor-pointer group"
+              onClick={() => avatarInputRef.current?.click()}
+            >
+              <Avatar
+                src={avatarUrl}
+                name={`${formData.firstName} ${formData.lastName}`}
+                size="xl"
+              />
+              <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                {isUploadingAvatar ? (
+                  <Loader2 className="h-6 w-6 text-white animate-spin" />
+                ) : (
+                  <Camera className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
+              </div>
+            </div>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
+            <p className="text-xs text-neutral-500 mt-1">Cliquez pour modifier la photo</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -131,7 +264,7 @@ export function EditProfileModal({ isOpen, onClose, user, onProfileUpdated }: Ed
             <Button type="button" variant="ghost" onClick={onClose}>
               Annuler
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || isUploadingAvatar || isUploadingBanner}>
               {isSubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (

@@ -108,8 +108,14 @@ export default function ProfilePage() {
               {/* Header du profil */}
               <Card padding="none" className="overflow-hidden">
                 {/* Bannière */}
-                <div className="h-32 md:h-48 bg-gradient-to-r from-primary-400 via-primary-500 to-secondary-400 relative">
-                  <button className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-lg text-white transition-colors">
+                <div
+                  className="h-32 md:h-48 bg-gradient-to-r from-primary-400 via-primary-500 to-secondary-400 relative"
+                  style={user?.bannerUrl ? { backgroundImage: `url(${user.bannerUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+                >
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-lg text-white transition-colors"
+                  >
                     <Edit3 className="h-4 w-4" />
                   </button>
                 </div>
@@ -118,7 +124,7 @@ export default function ProfilePage() {
                 <div className="px-6 pb-6">
                   <div className="flex flex-col md:flex-row md:items-end gap-4 -mt-16 md:-mt-12">
                     <div className="relative">
-                      <Avatar name={userName} size="xl" className="ring-4 ring-white" />
+                      <Avatar src={user?.avatarUrl} name={userName} size="xl" className="ring-4 ring-white" />
                       <button 
                         onClick={() => setShowEditModal(true)}
                         className="absolute bottom-0 right-0 p-1.5 bg-primary-500 text-white rounded-full hover:bg-primary-600 transition-colors"

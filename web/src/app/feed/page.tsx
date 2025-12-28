@@ -274,7 +274,9 @@ export default function FeedPage() {
                   key={post.id}
                   post={post}
                   currentUserName={userName}
+                  currentUserAvatar={user?.avatarUrl}
                   onPostUpdated={handleRefresh}
+                  onPostDeleted={handleRefresh}
                 />
               ))}
 
@@ -308,14 +310,14 @@ export default function FeedPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {newsItems.map((news, index) => (
-                    <a key={index} href="#" className="block group">
+                    <Link key={index} href={`/search?q=${encodeURIComponent(news.title)}`} className="block group">
                       <h4 className="text-sm font-medium text-neutral-900 group-hover:text-primary-500 transition-colors">
                         {news.title}
                       </h4>
                       <p className="text-xs text-neutral-500 mt-0.5">
                         {news.source} • {news.timeAgo}
                       </p>
-                    </a>
+                    </Link>
                   ))}
                 </CardContent>
               </Card>
@@ -328,12 +330,12 @@ export default function FeedPage() {
                 <CardContent>
                   <div className="space-y-3">
                     {trendingTopics.map((topic, index) => (
-                      <a key={index} href="#" className="flex items-center justify-between group">
+                      <Link key={index} href={`/search?q=${encodeURIComponent(topic.name)}`} className="flex items-center justify-between group">
                         <span className="font-medium text-neutral-900 group-hover:text-primary-500 transition-colors">
                           {topic.name}
                         </span>
                         <span className="text-xs text-neutral-500">{topic.posts}</span>
-                      </a>
+                      </Link>
                     ))}
                   </div>
                 </CardContent>
@@ -402,11 +404,9 @@ export default function FeedPage() {
               {/* Footer sticky */}
               <div className="text-xs text-neutral-500 space-y-2">
                 <div className="flex flex-wrap gap-x-3 gap-y-1">
-                  <a href="#" className="hover:text-primary-500">À propos</a>
-                  <a href="#" className="hover:text-primary-500">Accessibilité</a>
-                  <a href="#" className="hover:text-primary-500">Aide</a>
-                  <a href="#" className="hover:text-primary-500">Confidentialité</a>
-                  <a href="#" className="hover:text-primary-500">CGU</a>
+                  <Link href="/about" className="hover:text-primary-500">À propos</Link>
+                  <Link href="/privacy" className="hover:text-primary-500">Confidentialité</Link>
+                  <Link href="/terms" className="hover:text-primary-500">CGU</Link>
                 </div>
                 <p>ProNet © 2024 - Open Source</p>
               </div>

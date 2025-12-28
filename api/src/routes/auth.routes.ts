@@ -338,6 +338,7 @@ router.post(
         firstName: user.firstName,
         lastName: user.lastName,
         avatarUrl: user.avatarUrl,
+        bannerUrl: user.bannerUrl,
         headline: user.headline,
       },
       accessToken,
