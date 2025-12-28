@@ -305,16 +305,43 @@ export const connectionsApi = {
 // MESSAGES API
 // ============================================
 
+interface MessageUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  avatarUrl?: string;
+  headline?: string;
+}
+
+interface MessageData {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  readAt?: string;
+  createdAt: string;
+  sender?: MessageUser;
+}
+
+interface ConversationData {
+  id: string;
+  participants: Array<{ user: MessageUser }>;
+  messages: MessageData[];
+  lastMessage?: MessageData;
+  unreadCount?: number;
+}
+
 export const messagesApi = {
-  getConversations: () => api.get('/api/messages/conversations'),
+  getConversations: () => api.get<{ conversations: ConversationData[] }>('/api/messages/conversations'),
 
   getMessages: (conversationId: string, cursor?: string) =>
-    api.get(
+    api.get<{ messages: MessageData[]; nextCursor?: string }>(
       `/api/messages/conversations/${conversationId}${cursor ? `?cursor=${cursor}` : ''}`
     ),
 
   send: (receiverId: string, content: string) =>
-    api.post('/api/messages', { receiverId, content }),
+    api.post<MessageData>('/api/messages', { receiverId, content }),
 
   getUnreadCount: () => api.get<{ count: number }>('/api/messages/unread-count'),
 };
@@ -323,9 +350,19 @@ export const messagesApi = {
 // NOTIFICATIONS API
 // ============================================
 
+interface NotificationData {
+  id: string;
+  type: string;
+  title: string;
+  content: string;
+  link?: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
 export const notificationsApi = {
   getAll: (unreadOnly?: boolean) =>
-    api.get(`/api/notifications${unreadOnly ? '?unreadOnly=true' : ''}`),
+    api.get<{ notifications: NotificationData[] }>(`/api/notifications${unreadOnly ? '?unreadOnly=true' : ''}`),
 
   getUnreadCount: () => api.get<{ count: number }>('/api/notifications/unread-count'),
 
@@ -387,4 +424,138 @@ export const searchApi = {
     api.get<SearchResults>(`/api/search?q=${encodeURIComponent(q)}${type ? `&type=${type}` : ''}`),
 
   trending: () => api.get<TrendingResults>('/api/search/trending'),
+};
+
+// ============================================
+// UPLOAD API
+// ============================================
+
+export interface UploadedMedia {
+  url: string;
+  type: 'IMAGE' | 'VIDEO' | 'DOCUMENT';
+  filename?: string;
+  originalName?: string;
+  size?: number;
+}
+
+export const uploadApi = {
+  uploadAvatar: async (file: File): Promise<ApiResponse<{ avatarUrl: string }>> => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+      const response = await fetch(`${API_URL}/api/upload/avatar`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${api.getToken()}`,
+        },
+        body: formData,
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        return { error: data.error || 'Erreur lors de l\'upload' };
+      }
+      return { data };
+    } catch (error) {
+      return { error: 'Impossible de contacter le serveur' };
+    }
+  },
+
+  uploadBanner: async (file: File): Promise<ApiResponse<{ bannerUrl: string }>> => {
+    const formData = new FormData();
+    formData.append('banner', file);
+
+    try {
+      const response = await fetch(`${API_URL}/api/upload/banner`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${api.getToken()}`,
+        },
+        body: formData,
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        return { error: data.error || 'Erreur lors de l\'upload' };
+      }
+      return { data };
+    } catch (error) {
+      return { error: 'Impossible de contacter le serveur' };
+    }
+  },
+
+  uploadPostMedia: async (files: File[]): Promise<ApiResponse<{ media: UploadedMedia[] }>> => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('media', file));
+
+    try {
+      const response = await fetch(`${API_URL}/api/upload/post-media`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${api.getToken()}`,
+        },
+        body: formData,
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        return { error: data.error || 'Erreur lors de l\'upload' };
+      }
+      return { data };
+    } catch (error) {
+      return { error: 'Impossible de contacter le serveur' };
+    }
+  },
+
+  uploadDocument: async (file: File): Promise<ApiResponse<{ document: UploadedMedia }>> => {
+    const formData = new FormData();
+    formData.append('document', file);
+
+    try {
+      const response = await fetch(`${API_URL}/api/upload/document`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${api.getToken()}`,
+        },
+        body: formData,
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        return { error: data.error || 'Erreur lors de l\'upload' };
+      }
+      return { data };
+    } catch (error) {
+      return { error: 'Impossible de contacter le serveur' };
+    }
+  },
+
+  uploadMessageAttachments: async (files: File[]): Promise<ApiResponse<{ attachments: UploadedMedia[] }>> => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append('attachments', file));
+
+    try {
+      const response = await fetch(`${API_URL}/api/upload/message-attachments`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${api.getToken()}`,
+        },
+        body: formData,
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        return { error: data.error || 'Erreur lors de l\'upload' };
+      }
+      return { data };
+    } catch (error) {
+      return { error: 'Impossible de contacter le serveur' };
+    }
+  },
 };

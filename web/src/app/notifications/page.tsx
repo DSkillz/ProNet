@@ -33,8 +33,10 @@ type NotificationType =
 interface Notification {
   id: string;
   type: NotificationType;
-  message: string;
-  read: boolean;
+  title: string;
+  content: string;
+  isRead: boolean;
+  link?: string;
   createdAt: string;
   actor?: {
     id: string;
@@ -130,7 +132,7 @@ export default function NotificationsPage() {
     setIsLoading(true);
     const result = await notificationsApi.getAll(filter === "unread");
     if (result.data) {
-      setNotifications(result.data as Notification[]);
+      setNotifications(result.data.notifications as Notification[]);
     }
     setIsLoading(false);
   };
@@ -140,7 +142,7 @@ export default function NotificationsPage() {
     const result = await notificationsApi.markAsRead(id);
     if (!result.error) {
       setNotifications((prev) =>
-        prev.map((notif) => (notif.id === id ? { ...notif, read: true } : notif))
+        prev.map((notif) => (notif.id === id ? { ...notif, isRead: true } : notif))
       );
     }
     setActionLoading(null);
@@ -150,12 +152,12 @@ export default function NotificationsPage() {
     setActionLoading("all");
     const result = await notificationsApi.markAllAsRead();
     if (!result.error) {
-      setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
+      setNotifications((prev) => prev.map((notif) => ({ ...notif, isRead: true })));
     }
     setActionLoading(null);
   };
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
     <ProtectedRoute>
@@ -256,9 +258,9 @@ export default function NotificationsPage() {
                   <Link key={notification.id} href={link}>
                     <Card
                       className={`transition-all hover:shadow-md cursor-pointer ${
-                        !notification.read ? "bg-primary-50/50 border-l-4 border-l-primary-500" : ""
+                        !notification.isRead ? "bg-primary-50/50 border-l-4 border-l-primary-500" : ""
                       }`}
-                      onClick={() => !notification.read && handleMarkAsRead(notification.id)}
+                      onClick={() => !notification.isRead && handleMarkAsRead(notification.id)}
                     >
                       <div className="flex items-start gap-4">
                         {notification.actor ? (
@@ -283,17 +285,17 @@ export default function NotificationsPage() {
                         <div className="flex-1 min-w-0">
                           <p
                             className={`text-neutral-800 ${
-                              !notification.read ? "font-medium" : ""
+                              !notification.isRead ? "font-medium" : ""
                             }`}
                           >
-                            {notification.message}
+                            {notification.content}
                           </p>
                           <p className="text-sm text-neutral-500 mt-1">
                             {formatDistanceToNow(new Date(notification.createdAt))}
                           </p>
                         </div>
 
-                        {!notification.read && (
+                        {!notification.isRead && (
                           <div className="w-2.5 h-2.5 bg-primary-500 rounded-full flex-shrink-0" />
                         )}
                       </div>

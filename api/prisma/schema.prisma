@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -40,6 +40,12 @@ model User {
   isOpenToWork      Boolean   @default(false)
   isHiring          Boolean   @default(false)
   profileVisibility String    @default("PUBLIC") // PUBLIC, CONNECTIONS_ONLY, PRIVATE
+
+  // Admin
+  role              String    @default("USER") // USER, MODERATOR, ADMIN
+  isBanned          Boolean   @default(false)
+  bannedAt          DateTime?
+  banReason         String?
   
   // Timestamps
   createdAt         DateTime  @default(now())
@@ -86,6 +92,10 @@ model User {
   // OAuth
   accounts          Account[]
   sessions          Session[]
+
+  // Tokens
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
 }
 
 model Account {
@@ -521,8 +531,32 @@ model Notification {
   content     String?
   link        String?
   isRead      Boolean  @default(false)
-  
+
   createdAt   DateTime @default(now())
-  
+
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// TOKENS DE VÉRIFICATION
+// ============================================
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

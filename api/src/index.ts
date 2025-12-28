@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
+import path from 'path';
 import { rateLimit } from 'express-rate-limit';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -20,6 +21,8 @@ import notificationRoutes from './routes/notification.routes';
 import searchRoutes from './routes/search.routes';
 import companyRoutes from './routes/company.routes';
 import followRoutes from './routes/follow.routes';
+import uploadRoutes from './routes/upload.routes';
+import adminRoutes from './routes/admin.routes';
 
 // Middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -79,6 +82,9 @@ app.use(passport.initialize());
 app.use(morgan('dev'));
 app.use('/api', limiter);
 
+// Servir les fichiers statiques (uploads)
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 // Health check
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -95,6 +101,8 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/companies', companyRoutes);
 app.use('/api/follow', followRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Error handling
 app.use(errorHandler);
