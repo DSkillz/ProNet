@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -108,14 +109,24 @@ export function PostCard({ post, currentUserName, currentUserAvatar, onPostUpdat
     setIsCommenting(false);
   };
 
+  const [editError, setEditError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+
   const handleEdit = async () => {
     if (!editContent.trim() || isEditing) return;
     setIsEditing(true);
+    setEditError("");
 
-    const result = await postsApi.update(post.id, { content: editContent.trim() });
-    if (!result.error) {
-      setShowEditModal(false);
-      if (onPostUpdated) onPostUpdated();
+    try {
+      const result = await postsApi.update(post.id, { content: editContent.trim() });
+      if (result.error) {
+        setEditError(result.error);
+      } else {
+        setShowEditModal(false);
+        if (onPostUpdated) onPostUpdated();
+      }
+    } catch (err) {
+      setEditError("Une erreur est survenue");
     }
 
     setIsEditing(false);
@@ -124,11 +135,18 @@ export function PostCard({ post, currentUserName, currentUserAvatar, onPostUpdat
   const handleDelete = async () => {
     if (isDeleting) return;
     setIsDeleting(true);
+    setDeleteError("");
 
-    const result = await postsApi.delete(post.id);
-    if (!result.error) {
-      setShowDeleteConfirm(false);
-      if (onPostDeleted) onPostDeleted();
+    try {
+      const result = await postsApi.delete(post.id);
+      if (result.error) {
+        setDeleteError(result.error);
+      } else {
+        setShowDeleteConfirm(false);
+        if (onPostDeleted) onPostDeleted();
+      }
+    } catch (err) {
+      setDeleteError("Une erreur est survenue");
     }
 
     setIsDeleting(false);
@@ -398,13 +416,13 @@ export function PostCard({ post, currentUserName, currentUserAvatar, onPostUpdat
       </Card>
 
       {/* Edit Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowEditModal(false)} />
+      {showEditModal && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setShowEditModal(false); setEditError(""); }} />
           <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4">
             <div className="flex items-center justify-between p-4 border-b border-neutral-200">
               <h3 className="text-lg font-semibold">Modifier la publication</h3>
-              <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-neutral-100 rounded-full">
+              <button onClick={() => { setShowEditModal(false); setEditError(""); }} className="p-2 hover:bg-neutral-100 rounded-full">
                 <X className="h-5 w-5 text-neutral-500" />
               </button>
             </div>
@@ -415,9 +433,12 @@ export function PostCard({ post, currentUserName, currentUserAvatar, onPostUpdat
                 className="w-full min-h-[150px] text-neutral-800 outline-none resize-none border border-neutral-200 rounded-lg p-3"
                 autoFocus
               />
+              {editError && (
+                <p className="text-red-500 text-sm mt-2">{editError}</p>
+              )}
             </div>
             <div className="flex justify-end gap-3 p-4 border-t border-neutral-200">
-              <Button variant="ghost" onClick={() => setShowEditModal(false)}>
+              <Button variant="ghost" onClick={() => { setShowEditModal(false); setEditError(""); }}>
                 Annuler
               </Button>
               <Button onClick={handleEdit} disabled={!editContent.trim() || isEditing}>
@@ -425,20 +446,24 @@ export function PostCard({ post, currentUserName, currentUserAvatar, onPostUpdat
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)} />
+      {showDeleteConfirm && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setShowDeleteConfirm(false); setDeleteError(""); }} />
           <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
             <h3 className="text-lg font-semibold mb-2">Supprimer la publication ?</h3>
             <p className="text-neutral-600 text-sm mb-6">
               Cette action est irréversible. La publication sera définitivement supprimée.
             </p>
+            {deleteError && (
+              <p className="text-red-500 text-sm mb-4">{deleteError}</p>
+            )}
             <div className="flex justify-end gap-3">
-              <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)}>
+              <Button variant="ghost" onClick={() => { setShowDeleteConfirm(false); setDeleteError(""); }}>
                 Annuler
               </Button>
               <Button
@@ -450,7 +475,8 @@ export function PostCard({ post, currentUserName, currentUserAvatar, onPostUpdat
               </Button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
