@@ -50,8 +50,23 @@ const limiter = rateLimit({
 
 // Middleware
 app.use(helmet());
+
+// Configuration CORS pour autoriser plusieurs origines
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://pro-net-flax.vercel.app',
+  process.env.FRONTEND_URL,
+].filter(Boolean) as string[];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Autoriser les requêtes sans origin (ex: Postman, curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
 }));
 app.use(compression());
