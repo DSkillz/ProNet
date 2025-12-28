@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Loader2, Camera, ImagePlus } from "lucide-react";
+import { X, Loader2, Camera, ImagePlus, Trash2 } from "lucide-react";
 import { Button, Input, Avatar } from "@/components/ui";
 import { User, usersApi, uploadApi } from "@/lib/api";
 
@@ -25,6 +25,8 @@ export function EditProfileModal({ isOpen, onClose, user, onProfileUpdated }: Ed
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [isDeletingAvatar, setIsDeletingAvatar] = useState(false);
+  const [isDeletingBanner, setIsDeletingBanner] = useState(false);
   const [error, setError] = useState("");
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -113,6 +115,36 @@ export function EditProfileModal({ isOpen, onClose, user, onProfileUpdated }: Ed
     }
   };
 
+  const handleDeleteAvatar = async () => {
+    setIsDeletingAvatar(true);
+    setError("");
+
+    const result = await uploadApi.deleteAvatar();
+
+    if (result.error) {
+      setError(result.error);
+    } else {
+      setAvatarUrl("");
+    }
+
+    setIsDeletingAvatar(false);
+  };
+
+  const handleDeleteBanner = async () => {
+    setIsDeletingBanner(true);
+    setError("");
+
+    const result = await uploadApi.deleteBanner();
+
+    if (result.error) {
+      setError(result.error);
+    } else {
+      setBannerUrl("");
+    }
+
+    setIsDeletingBanner(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -170,14 +202,32 @@ export function EditProfileModal({ isOpen, onClose, user, onProfileUpdated }: Ed
               onClick={() => bannerInputRef.current?.click()}
               style={bannerUrl ? { backgroundImage: `url(${bannerUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
             >
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                {isUploadingBanner ? (
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-4">
+                {isUploadingBanner || isDeletingBanner ? (
                   <Loader2 className="h-6 w-6 text-white animate-spin" />
                 ) : (
                   <ImagePlus className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                 )}
               </div>
             </div>
+            {bannerUrl && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteBanner();
+                }}
+                disabled={isDeletingBanner}
+                className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors disabled:opacity-50"
+                title="Supprimer la bannière"
+              >
+                {isDeletingBanner ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+              </button>
+            )}
             <input
               ref={bannerInputRef}
               type="file"
@@ -190,22 +240,42 @@ export function EditProfileModal({ isOpen, onClose, user, onProfileUpdated }: Ed
 
           {/* Avatar Upload */}
           <div className="flex flex-col items-center -mt-12 relative z-10">
-            <div
-              className="relative cursor-pointer group"
-              onClick={() => avatarInputRef.current?.click()}
-            >
-              <Avatar
-                src={avatarUrl}
-                name={`${formData.firstName} ${formData.lastName}`}
-                size="xl"
-              />
-              <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                {isUploadingAvatar ? (
-                  <Loader2 className="h-6 w-6 text-white animate-spin" />
-                ) : (
-                  <Camera className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                )}
+            <div className="relative">
+              <div
+                className="cursor-pointer group"
+                onClick={() => avatarInputRef.current?.click()}
+              >
+                <Avatar
+                  src={avatarUrl}
+                  name={`${formData.firstName} ${formData.lastName}`}
+                  size="xl"
+                />
+                <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                  {isUploadingAvatar || isDeletingAvatar ? (
+                    <Loader2 className="h-6 w-6 text-white animate-spin" />
+                  ) : (
+                    <Camera className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  )}
+                </div>
               </div>
+              {avatarUrl && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteAvatar();
+                  }}
+                  disabled={isDeletingAvatar}
+                  className="absolute -bottom-1 -right-1 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors disabled:opacity-50"
+                  title="Supprimer la photo"
+                >
+                  {isDeletingAvatar ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3 w-3" />
+                  )}
+                </button>
+              )}
             </div>
             <input
               ref={avatarInputRef}
@@ -267,7 +337,7 @@ export function EditProfileModal({ isOpen, onClose, user, onProfileUpdated }: Ed
             <Button type="button" variant="ghost" onClick={onClose}>
               Annuler
             </Button>
-            <Button type="submit" disabled={isSubmitting || isUploadingAvatar || isUploadingBanner}>
+            <Button type="submit" disabled={isSubmitting || isUploadingAvatar || isUploadingBanner || isDeletingAvatar || isDeletingBanner}>
               {isSubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (

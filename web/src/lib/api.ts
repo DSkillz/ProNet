@@ -583,6 +583,46 @@ export const uploadApi = {
     }
   },
 
+  deleteAvatar: async (): Promise<ApiResponse<void>> => {
+    try {
+      const response = await fetch(`${API_URL}/api/upload/avatar`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${api.getToken()}`,
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok && response.status !== 204) {
+        const data = await response.json();
+        return { error: data.error || 'Erreur lors de la suppression' };
+      }
+      return { data: undefined };
+    } catch (error) {
+      return { error: 'Impossible de contacter le serveur' };
+    }
+  },
+
+  deleteBanner: async (): Promise<ApiResponse<void>> => {
+    try {
+      const response = await fetch(`${API_URL}/api/upload/banner`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${api.getToken()}`,
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok && response.status !== 204) {
+        const data = await response.json();
+        return { error: data.error || 'Erreur lors de la suppression' };
+      }
+      return { data: undefined };
+    } catch (error) {
+      return { error: 'Impossible de contacter le serveur' };
+    }
+  },
+
   uploadPostMedia: async (files: File[]): Promise<ApiResponse<{ media: UploadedMedia[] }>> => {
     const formData = new FormData();
     files.forEach((file) => formData.append('media', file));

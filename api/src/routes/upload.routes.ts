@@ -234,6 +234,70 @@ router.post(
 );
 
 // ============================================
+// SUPPRIMER AVATAR
+// ============================================
+router.delete(
+  '/avatar',
+  authenticate,
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: { avatarUrl: true },
+    });
+
+    // Supprimer le fichier s'il existe
+    if (user?.avatarUrl && user.avatarUrl.includes('/uploads/avatars/')) {
+      const filename = user.avatarUrl.split('/avatars/')[1];
+      try {
+        await deleteFile(`avatars/${filename}`);
+      } catch (e) {
+        // Ignorer si le fichier n'existe pas
+      }
+    }
+
+    // Mettre à jour l'utilisateur
+    await prisma.user.update({
+      where: { id: req.user!.id },
+      data: { avatarUrl: null },
+    });
+
+    res.status(204).send();
+  })
+);
+
+// ============================================
+// SUPPRIMER BANNER
+// ============================================
+router.delete(
+  '/banner',
+  authenticate,
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: { bannerUrl: true },
+    });
+
+    // Supprimer le fichier s'il existe
+    if (user?.bannerUrl && user.bannerUrl.includes('/uploads/banners/')) {
+      const filename = user.bannerUrl.split('/banners/')[1];
+      try {
+        await deleteFile(`banners/${filename}`);
+      } catch (e) {
+        // Ignorer si le fichier n'existe pas
+      }
+    }
+
+    // Mettre à jour l'utilisateur
+    await prisma.user.update({
+      where: { id: req.user!.id },
+      data: { bannerUrl: null },
+    });
+
+    res.status(204).send();
+  })
+);
+
+// ============================================
 // SUPPRIMER UN FICHIER
 // ============================================
 router.delete(
