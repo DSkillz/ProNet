@@ -150,7 +150,7 @@ export default function ProfilePage() {
 
                 {/* Infos profil */}
                 <div className="px-6 pb-6">
-                  <div className="flex flex-col md:flex-row md:items-end gap-4 -mt-16 md:-mt-12">
+                  <div className="flex flex-col md:flex-row md:items-end gap-4 -mt-12 md:-mt-8">
                     <div className="relative">
                       <Avatar src={user?.avatarUrl} name={userName} size="xl" className="ring-4 ring-white" />
                       <button 
