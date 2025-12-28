@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { Navbar } from "@/components/layout";
 import { Button, Avatar, Card, Input } from "@/components/ui";
 import {
@@ -53,6 +53,25 @@ interface Message {
 }
 
 export default function MessagesPage() {
+  return (
+    <Suspense fallback={
+      <ProtectedRoute>
+        <div className="min-h-screen bg-neutral-100">
+          <Navbar />
+          <main className="max-w-6xl mx-auto px-4 py-6">
+            <Card className="h-[calc(100vh-120px)] flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+            </Card>
+          </main>
+        </div>
+      </ProtectedRoute>
+    }>
+      <MessagesContent />
+    </Suspense>
+  );
+}
+
+function MessagesContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const [conversations, setConversations] = useState<Conversation[]>([]);
