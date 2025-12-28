@@ -23,15 +23,15 @@ router.get(
     const searchQuery = q.trim();
     const results: any = {};
 
-    // Rechercher des utilisateurs (SQLite: LIKE is case-insensitive by default)
+    // Rechercher des utilisateurs
     if (type === 'all' || type === 'users') {
       const users = await prisma.user.findMany({
         where: {
           profileVisibility: { not: 'PRIVATE' },
           OR: [
-            { firstName: { contains: searchQuery } },
-            { lastName: { contains: searchQuery } },
-            { headline: { contains: searchQuery } },
+            { firstName: { contains: searchQuery, mode: 'insensitive' } },
+            { lastName: { contains: searchQuery, mode: 'insensitive' } },
+            { headline: { contains: searchQuery, mode: 'insensitive' } },
           ],
         },
         take,
@@ -64,7 +64,7 @@ router.get(
       results.posts = await prisma.post.findMany({
         where: {
           visibility: 'PUBLIC',
-          content: { contains: searchQuery },
+          content: { contains: searchQuery, mode: 'insensitive' },
         },
         take,
         skip: type === 'posts' ? skip : 0,
@@ -91,9 +91,9 @@ router.get(
         where: {
           isActive: true,
           OR: [
-            { title: { contains: searchQuery } },
-            { description: { contains: searchQuery } },
-            { company: { name: { contains: searchQuery } } },
+            { title: { contains: searchQuery, mode: 'insensitive' } },
+            { description: { contains: searchQuery, mode: 'insensitive' } },
+            { company: { name: { contains: searchQuery, mode: 'insensitive' } } },
           ],
         },
         take,
@@ -119,9 +119,9 @@ router.get(
       results.companies = await prisma.company.findMany({
         where: {
           OR: [
-            { name: { contains: searchQuery } },
-            { description: { contains: searchQuery } },
-            { industry: { contains: searchQuery } },
+            { name: { contains: searchQuery, mode: 'insensitive' } },
+            { description: { contains: searchQuery, mode: 'insensitive' } },
+            { industry: { contains: searchQuery, mode: 'insensitive' } },
           ],
         },
         take,
@@ -159,7 +159,7 @@ router.get(
 
     const skills = await prisma.skill.findMany({
       where: {
-        name: { contains: q },
+        name: { contains: q, mode: 'insensitive' },
       },
       take,
       select: {
