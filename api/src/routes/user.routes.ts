@@ -13,6 +13,84 @@ import {
 const router = Router();
 
 // ============================================
+// OBTENIR MON PROFIL (UTILISATEUR CONNECTÉ)
+// ============================================
+router.get(
+  '/me',
+  authenticate,
+  asyncHandler(async (req: AuthRequest, res: any) => {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user!.id },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        headline: true,
+        about: true,
+        avatarUrl: true,
+        avatar: true,
+        bannerUrl: true,
+        location: true,
+        website: true,
+        isOpenToWork: true,
+        isHiring: true,
+        profileVisibility: true,
+        emailVerified: true,
+        provider: true,
+        createdAt: true,
+        lastLoginAt: true,
+        experiences: {
+          orderBy: { startDate: 'desc' },
+          include: { skills: { include: { skill: true } } },
+        },
+        education: { orderBy: { startDate: 'desc' } },
+        skills: {
+          include: { skill: true, endorsements: true },
+        },
+        certifications: { orderBy: { issueDate: 'desc' } },
+        languages: true,
+        _count: {
+          select: {
+            posts: true,
+            sentConnections: { where: { status: 'ACCEPTED' } },
+            receivedConnections: { where: { status: 'ACCEPTED' } },
+            followers: true,
+            following: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new AppError(404, 'Utilisateur non trouvé');
+    }
+
+    res.json({
+      ...user,
+      avatarUrl: user.avatarUrl || user.avatar,
+      connectionCount: user._count.sentConnections + user._count.receivedConnections,
+    });
+  })
+);
+
+// ============================================
+// SUPPRIMER MON COMPTE
+// ============================================
+router.delete(
+  '/me',
+  authenticate,
+  asyncHandler(async (req: AuthRequest, res: any) => {
+    // Supprimer l'utilisateur (cascade supprimera les données liées)
+    await prisma.user.delete({
+      where: { id: req.user!.id },
+    });
+
+    res.json({ message: 'Compte supprimé avec succès' });
+  })
+);
+
+// ============================================
 // OBTENIR UN PROFIL UTILISATEUR
 // ============================================
 router.get(

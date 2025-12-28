@@ -18,6 +18,8 @@ import connectionRoutes from './routes/connection.routes';
 import messageRoutes from './routes/message.routes';
 import notificationRoutes from './routes/notification.routes';
 import searchRoutes from './routes/search.routes';
+import companyRoutes from './routes/company.routes';
+import followRoutes from './routes/follow.routes';
 
 // Middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -91,6 +93,8 @@ app.use('/api/connections', connectionRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/companies', companyRoutes);
+app.use('/api/follow', followRoutes);
 
 // Error handling
 app.use(errorHandler);
