@@ -153,9 +153,9 @@ export default function FeedPage() {
   useEffect(() => {
     const fetchTrending = async () => {
       const result = await searchApi.trending();
-      if (result.data) {
-        const topics = (result.data as any[]).map((item: any) => ({
-          name: `#${item.hashtag?.name || item.name || 'trending'}`,
+      if (result.data && Array.isArray(result.data)) {
+        const topics = result.data.map((item) => ({
+          name: `#${item.hashtag?.name || 'trending'}`,
           count: item.count || 0,
         }));
         setTrendingTopics(topics);

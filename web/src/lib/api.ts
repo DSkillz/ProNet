@@ -432,15 +432,19 @@ export interface SearchResults {
   }>;
 }
 
-export interface TrendingResults {
-  trending: string[];
+export interface TrendingItem {
+  hashtag: {
+    id: string;
+    name: string;
+  };
+  count: number;
 }
 
 export const searchApi = {
   search: (q: string, type?: string) =>
     api.get<SearchResults>(`/api/search?q=${encodeURIComponent(q)}${type ? `&type=${type}` : ''}`),
 
-  trending: () => api.get<TrendingResults>('/api/search/trending'),
+  trending: () => api.get<TrendingItem[]>('/api/search/trending'),
 };
 
 // ============================================
