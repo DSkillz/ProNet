@@ -456,6 +456,15 @@ router.get(
         emailVerified: true,
         createdAt: true,
         lastLoginAt: true,
+        _count: {
+          select: {
+            posts: true,
+            sentConnections: { where: { status: 'ACCEPTED' } },
+            receivedConnections: { where: { status: 'ACCEPTED' } },
+            followers: true,
+            following: true,
+          },
+        },
       },
     });
 
@@ -463,7 +472,14 @@ router.get(
       throw new AppError(404, 'Utilisateur non trouvé');
     }
 
-    res.json(user);
+    res.json({
+      ...user,
+      connectionCount: user._count.sentConnections + user._count.receivedConnections,
+      followersCount: user._count.followers,
+      followingCount: user._count.following,
+      postsCount: user._count.posts,
+      _count: undefined,
+    });
   })
 );
 

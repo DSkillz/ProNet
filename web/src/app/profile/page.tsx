@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar, Footer } from "@/components/layout";
 import { Button, Avatar, Badge, Card, CardHeader, CardTitle, CardContent } from "@/components/ui";
 import {
@@ -26,6 +26,15 @@ import Link from "next/link";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import { EditProfileModal } from "@/components/profile";
+import { connectionsApi } from "@/lib/api";
+
+interface SimilarProfile {
+  id: string;
+  firstName: string;
+  lastName: string;
+  headline?: string;
+  avatarUrl?: string;
+}
 
 // Données fictives pour le design (sera remplacé par API)
 const experienceData = [
@@ -88,8 +97,27 @@ const skillsData = [
 export default function ProfilePage() {
   const { user, updateUser } = useAuth();
   const [showEditModal, setShowEditModal] = useState(false);
+  const [similarProfiles, setSimilarProfiles] = useState<SimilarProfile[]>([]);
 
   const userName = user ? `${user.firstName} ${user.lastName}` : "Utilisateur";
+
+  // Fetch similar profiles (suggestions)
+  useEffect(() => {
+    const fetchSimilarProfiles = async () => {
+      const result = await connectionsApi.getSuggestions();
+      if (result.data) {
+        const suggestions = Array.isArray(result.data) ? result.data : [];
+        setSimilarProfiles(suggestions.slice(0, 3).map((s: any) => ({
+          id: s.id,
+          firstName: s.firstName,
+          lastName: s.lastName,
+          headline: s.headline,
+          avatarUrl: s.avatarUrl,
+        })));
+      }
+    };
+    fetchSimilarProfiles();
+  }, []);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -148,7 +176,7 @@ export default function ProfilePage() {
                               </span>
                             )}
                             <Link href="/network" className="text-primary-500 hover:underline">
-                              523 connexions
+                              {user?.connectionCount || 0} connexions
                             </Link>
                           </div>
                         </div>
@@ -335,28 +363,28 @@ export default function ProfilePage() {
               {/* Analytics */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Analyses</CardTitle>
+                  <CardTitle className="text-base">Statistiques</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center gap-3">
-                    <Eye className="h-5 w-5 text-neutral-400" />
+                    <Users className="h-5 w-5 text-neutral-400" />
                     <div>
-                      <p className="font-semibold text-neutral-900">284</p>
-                      <p className="text-sm text-neutral-500">Vues du profil</p>
+                      <p className="font-semibold text-neutral-900">{user?.connectionCount || 0}</p>
+                      <p className="text-sm text-neutral-500">Connexions</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <TrendingUp className="h-5 w-5 text-neutral-400" />
                     <div>
-                      <p className="font-semibold text-neutral-900">1,523</p>
-                      <p className="text-sm text-neutral-500">Impressions des posts</p>
+                      <p className="font-semibold text-neutral-900">{user?.postsCount || 0}</p>
+                      <p className="text-sm text-neutral-500">Publications</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Users className="h-5 w-5 text-neutral-400" />
+                    <Eye className="h-5 w-5 text-neutral-400" />
                     <div>
-                      <p className="font-semibold text-neutral-900">47</p>
-                      <p className="text-sm text-neutral-500">Apparitions en recherche</p>
+                      <p className="font-semibold text-neutral-900">{user?.followersCount || 0}</p>
+                      <p className="text-sm text-neutral-500">Abonnés</p>
                     </div>
                   </div>
                 </CardContent>
@@ -385,21 +413,29 @@ export default function ProfilePage() {
                   <CardTitle className="text-base">Profils similaires</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {[
-                    { name: "Thomas Bernard", title: "Senior Developer @TechCorp" },
-                    { name: "Sophie Martin", title: "Product Manager @InnovateTech" },
-                  ].map((person, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <Avatar name={person.name} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-neutral-900 text-sm truncate">{person.name}</p>
-                        <p className="text-xs text-neutral-500 truncate">{person.title}</p>
+                  {similarProfiles.length === 0 ? (
+                    <p className="text-sm text-neutral-500 text-center py-2">
+                      Aucune suggestion pour le moment
+                    </p>
+                  ) : (
+                    similarProfiles.map((person) => (
+                      <div key={person.id} className="flex items-center gap-3">
+                        <Avatar name={`${person.firstName} ${person.lastName}`} src={person.avatarUrl} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <Link href={`/profile/${person.id}`} className="font-medium text-neutral-900 text-sm truncate hover:text-primary-500">
+                            {person.firstName} {person.lastName}
+                          </Link>
+                          <p className="text-xs text-neutral-500 truncate">{person.headline || "Membre ProNet"}</p>
+                        </div>
+                        <Button size="sm" variant="ghost">
+                          <UserPlus className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button size="sm" variant="ghost">
-                        <UserPlus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                    ))
+                  )}
+                  <Link href="/network" className="block text-center text-sm text-primary-500 hover:underline mt-2">
+                    Voir plus
+                  </Link>
                 </CardContent>
               </Card>
             </aside>

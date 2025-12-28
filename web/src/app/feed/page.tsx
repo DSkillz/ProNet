@@ -19,7 +19,7 @@ import {
 import Link from "next/link";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
-import { postsApi, Post, connectionsApi, jobsApi, externalApi, NewsItem } from "@/lib/api";
+import { postsApi, Post, connectionsApi, jobsApi, externalApi, NewsItem, searchApi } from "@/lib/api";
 import { CreatePostModal, PostCard } from "@/components/posts";
 
 interface SuggestedUser {
@@ -41,12 +41,17 @@ interface JobSuggestion {
   location?: string;
 }
 
-const defaultTrendingTopics = [
-  { name: "#TechJobs", posts: "1.2k posts" },
-  { name: "#RemoteWork", posts: "890 posts" },
-  { name: "#Carrière", posts: "654 posts" },
-  { name: "#Innovation", posts: "432 posts" },
-];
+interface TrendingTopic {
+  name: string;
+  count: number;
+}
+
+const formatCount = (count: number): string => {
+  if (count >= 1000) {
+    return `${(count / 1000).toFixed(1)}k posts`;
+  }
+  return `${count} posts`;
+};
 
 export default function FeedPage() {
   const { user } = useAuth();
@@ -59,7 +64,7 @@ export default function FeedPage() {
   const [suggestedConnections, setSuggestedConnections] = useState<SuggestedUser[]>([]);
   const [jobSuggestions, setJobSuggestions] = useState<JobSuggestion[]>([]);
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
-  const [trendingTopics, setTrendingTopics] = useState(defaultTrendingTopics);
+  const [trendingTopics, setTrendingTopics] = useState<TrendingTopic[]>([]);
 
   const userName = user ? `${user.firstName} ${user.lastName}` : "Utilisateur";
 
@@ -142,6 +147,21 @@ export default function FeedPage() {
       }
     };
     fetchNews();
+  }, []);
+
+  // Fetch trending hashtags
+  useEffect(() => {
+    const fetchTrending = async () => {
+      const result = await searchApi.trending();
+      if (result.data) {
+        const topics = (result.data as any[]).map((item: any) => ({
+          name: `#${item.hashtag?.name || item.name || 'trending'}`,
+          count: item.count || 0,
+        }));
+        setTrendingTopics(topics);
+      }
+    };
+    fetchTrending();
   }, []);
 
   const handlePostCreated = () => {
@@ -381,14 +401,18 @@ export default function FeedPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {trendingTopics.map((topic, index) => (
-                      <Link key={index} href={`/search?q=${encodeURIComponent(topic.name)}`} className="flex items-center justify-between group">
-                        <span className="font-medium text-neutral-900 group-hover:text-primary-500 transition-colors">
-                          {topic.name}
-                        </span>
-                        <span className="text-xs text-neutral-500">{topic.posts}</span>
-                      </Link>
-                    ))}
+                    {trendingTopics.length === 0 ? (
+                      <p className="text-sm text-neutral-500 text-center py-2">Aucune tendance pour le moment</p>
+                    ) : (
+                      trendingTopics.map((topic, index) => (
+                        <Link key={index} href={`/search?q=${encodeURIComponent(topic.name)}`} className="flex items-center justify-between group">
+                          <span className="font-medium text-neutral-900 group-hover:text-primary-500 transition-colors">
+                            {topic.name}
+                          </span>
+                          <span className="text-xs text-neutral-500">{formatCount(topic.count)}</span>
+                        </Link>
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
