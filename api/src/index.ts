@@ -24,6 +24,9 @@ import followRoutes from './routes/follow.routes';
 import uploadRoutes from './routes/upload.routes';
 import adminRoutes from './routes/admin.routes';
 import externalRoutes from './routes/external.routes';
+import statsRoutes from './routes/stats.routes';
+import eventRoutes from './routes/event.routes';
+import groupRoutes from './routes/group.routes';
 
 // Middleware
 import { errorHandler } from './middleware/error.middleware';
@@ -105,6 +108,9 @@ app.use('/api/follow', followRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/external', externalRoutes);
+app.use('/api/stats', statsRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/groups', groupRoutes);
 
 // Error handling
 app.use(errorHandler);

@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui";
 import { Footer } from "@/components/layout";
@@ -17,6 +20,7 @@ import {
   Lock,
   Heart,
 } from "lucide-react";
+import { statsApi } from "@/lib/api";
 
 const features = [
   {
@@ -57,12 +61,11 @@ const features = [
   },
 ];
 
-const stats = [
-  { value: "50K+", label: "Professionnels" },
-  { value: "10K+", label: "Entreprises" },
-  { value: "25K+", label: "Offres d'emploi" },
-  { value: "100%", label: "Open Source" },
-];
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M+`;
+  if (num >= 1000) return `${(num / 1000).toFixed(0)}K+`;
+  return `${num}+`;
+};
 
 const testimonials = [
   {
@@ -89,6 +92,28 @@ const testimonials = [
 ];
 
 export default function HomePage() {
+  const [stats, setStats] = useState([
+    { value: "0+", label: "Professionnels" },
+    { value: "0+", label: "Entreprises" },
+    { value: "0+", label: "Offres d'emploi" },
+    { value: "100%", label: "Open Source" },
+  ]);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const result = await statsApi.getPublic();
+      if (result.data) {
+        setStats([
+          { value: formatNumber(result.data.users), label: "Professionnels" },
+          { value: formatNumber(result.data.companies), label: "Entreprises" },
+          { value: formatNumber(result.data.jobs), label: "Offres d'emploi" },
+          { value: "100%", label: "Open Source" },
+        ]);
+      }
+    };
+    fetchStats();
+  }, []);
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header simplifié pour la landing */}

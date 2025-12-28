@@ -96,6 +96,15 @@ model User {
   // Tokens
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
+
+  // Events
+  organizedEvents   Event[]
+  eventAttendances  EventAttendee[]
+
+  // Groups
+  ownedGroups       Group[]       @relation("OwnedGroups")
+  groupMemberships  GroupMember[]
+  groupPosts        GroupPost[]
 }
 
 model Account {
@@ -459,6 +468,7 @@ model Company {
   
   jobs        Job[]
   experiences Experience[]
+  events      Event[]
 }
 
 // ============================================
@@ -559,4 +569,123 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// ÉVÉNEMENTS
+// ============================================
+
+model Event {
+  id          String    @id @default(cuid())
+  organizerId String
+  companyId   String?
+
+  title       String
+  description String
+
+  type        String    // WEBINAR, CONFERENCE, WORKSHOP, MEETUP, NETWORKING, OTHER
+  format      String    @default("IN_PERSON") // IN_PERSON, ONLINE, HYBRID
+
+  location    String?
+  address     String?
+  onlineUrl   String?
+
+  startDate   DateTime
+  endDate     DateTime?
+  timezone    String    @default("Europe/Paris")
+
+  coverImage  String?
+  maxAttendees Int?
+  price       Float?
+  currency    String?   @default("EUR")
+
+  isPublished Boolean   @default(true)
+  isCancelled Boolean   @default(false)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  organizer   User      @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  company     Company?  @relation(fields: [companyId], references: [id])
+  attendees   EventAttendee[]
+  tags        EventTag[]
+}
+
+model EventAttendee {
+  id        String   @id @default(cuid())
+  eventId   String
+  userId    String
+  status    String   @default("REGISTERED") // REGISTERED, ATTENDED, CANCELLED, WAITLIST
+
+  createdAt DateTime @default(now())
+
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+model EventTag {
+  id      String @id @default(cuid())
+  eventId String
+  name    String
+
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// GROUPES
+// ============================================
+
+model Group {
+  id          String    @id @default(cuid())
+  ownerId     String
+
+  name        String
+  slug        String    @unique
+  description String?
+
+  type        String    @default("PUBLIC") // PUBLIC, PRIVATE, SECRET
+  category    String?   // PROFESSIONAL, INDUSTRY, ALUMNI, INTEREST, OTHER
+
+  avatarUrl   String?
+  bannerUrl   String?
+
+  rules       String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  owner       User      @relation("OwnedGroups", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     GroupMember[]
+  posts       GroupPost[]
+}
+
+model GroupMember {
+  id        String   @id @default(cuid())
+  groupId   String
+  userId    String
+  role      String   @default("MEMBER") // OWNER, ADMIN, MODERATOR, MEMBER
+
+  joinedAt  DateTime @default(now())
+
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+}
+
+model GroupPost {
+  id        String    @id @default(cuid())
+  groupId   String
+  authorId  String
+  content   String
+
+  isPinned  Boolean   @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  group     Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
 }

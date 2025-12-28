@@ -1,418 +1,307 @@
 "use client";
 
-import { useState } from "react";
-import { Navbar } from "@/components/layout";
-import { Card, Button, Avatar, Badge } from "@/components/ui";
+import { useState, useEffect } from "react";
+import { Navbar, Footer } from "@/components/layout";
+import { Button, Card, CardContent, Avatar } from "@/components/ui";
 import {
   Calendar,
-  Search,
-  Plus,
   MapPin,
-  Clock,
   Users,
+  Clock,
   Video,
-  ExternalLink,
-  Filter,
-  ChevronRight,
-  Ticket,
-  Star,
+  Plus,
+  Search,
+  Loader2,
 } from "lucide-react";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Link from "next/link";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { eventsApi, Event } from "@/lib/api";
 
-interface Event {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  time: string;
-  location?: string;
-  isOnline: boolean;
-  imageUrl?: string;
-  attendeeCount: number;
-  maxAttendees?: number;
-  organizer: {
-    name: string;
-    avatarUrl?: string;
-  };
-  category: string;
-  isRegistered: boolean;
-  isFree: boolean;
-  price?: number;
-}
-
-// Mock data - à remplacer par API
-const mockEvents: Event[] = [
-  {
-    id: "1",
-    title: "React Paris Meetup #42",
-    description: "Rejoignez-nous pour une soirée de talks sur React 19, Server Components et les dernières tendances.",
-    date: "2025-01-15",
-    time: "19:00",
-    location: "Station F, Paris",
-    isOnline: false,
-    attendeeCount: 156,
-    maxAttendees: 200,
-    organizer: { name: "React Paris" },
-    category: "Meetup",
-    isRegistered: true,
-    isFree: true,
-  },
-  {
-    id: "2",
-    title: "Webinar: IA & Productivité",
-    description: "Découvrez comment l'IA peut transformer votre quotidien professionnel avec des outils pratiques.",
-    date: "2025-01-20",
-    time: "14:00",
-    isOnline: true,
-    attendeeCount: 423,
-    organizer: { name: "Tech Insights" },
-    category: "Webinar",
-    isRegistered: false,
-    isFree: true,
-  },
-  {
-    id: "3",
-    title: "Conférence DevOps France 2025",
-    description: "La plus grande conférence DevOps francophone. 2 jours de talks, workshops et networking.",
-    date: "2025-02-05",
-    time: "09:00",
-    location: "Centre de Conférences, Lyon",
-    isOnline: false,
-    attendeeCount: 850,
-    maxAttendees: 1000,
-    organizer: { name: "DevOps France" },
-    category: "Conférence",
-    isRegistered: false,
-    isFree: false,
-    price: 299,
-  },
-  {
-    id: "4",
-    title: "Workshop UX Research",
-    description: "Apprenez les méthodologies de recherche UX avec des exercices pratiques.",
-    date: "2025-01-25",
-    time: "10:00",
-    isOnline: true,
-    attendeeCount: 45,
-    maxAttendees: 50,
-    organizer: { name: "UX Academy" },
-    category: "Workshop",
-    isRegistered: true,
-    isFree: false,
-    price: 49,
-  },
-  {
-    id: "5",
-    title: "Networking Entrepreneurs Tech",
-    description: "Soirée de networking pour les entrepreneurs du secteur tech. Pitch sessions et échanges.",
-    date: "2025-01-28",
-    time: "18:30",
-    location: "La Felicità, Paris",
-    isOnline: false,
-    attendeeCount: 89,
-    maxAttendees: 150,
-    organizer: { name: "Startup Network" },
-    category: "Networking",
-    isRegistered: false,
-    isFree: true,
-  },
+const eventTypes = [
+  { value: "", label: "Tous les types" },
+  { value: "WEBINAR", label: "Webinaire" },
+  { value: "CONFERENCE", label: "Conférence" },
+  { value: "WORKSHOP", label: "Atelier" },
+  { value: "MEETUP", label: "Meetup" },
+  { value: "NETWORKING", label: "Networking" },
 ];
 
-const categories = ["Tous", "Meetup", "Webinar", "Conférence", "Workshop", "Networking"];
+const eventFormats = [
+  { value: "", label: "Tous les formats" },
+  { value: "IN_PERSON", label: "En présentiel" },
+  { value: "ONLINE", label: "En ligne" },
+  { value: "HYBRID", label: "Hybride" },
+];
 
-type TabType = "upcoming" | "my-events" | "past";
+function formatEventDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function formatEventTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export default function EventsPage() {
-  const [activeTab, setActiveTab] = useState<TabType>("upcoming");
+  const [events, setEvents] = useState<Event[]>([]);
+  const [myEvents, setMyEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"discover" | "my">("discover");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [formatFilter, setFormatFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Tous");
-  const [showOnlineOnly, setShowOnlineOnly] = useState(false);
 
-  const myEvents = mockEvents.filter((e) => e.isRegistered);
-  const upcomingEvents = mockEvents;
+  useEffect(() => {
+    fetchEvents();
+    fetchMyEvents();
+  }, []);
 
-  const filteredEvents = (activeTab === "my-events" ? myEvents : upcomingEvents).filter((event) => {
-    const matchesSearch =
-      event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "Tous" || event.category === selectedCategory;
-    const matchesOnline = !showOnlineOnly || event.isOnline;
-    return matchesSearch && matchesCategory && matchesOnline;
-  });
+  useEffect(() => {
+    fetchEvents();
+  }, [typeFilter, formatFilter]);
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("fr-FR", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-    });
+  const fetchEvents = async () => {
+    setIsLoading(true);
+    const params: any = { limit: 20 };
+    if (typeFilter) params.type = typeFilter;
+    if (formatFilter) params.format = formatFilter;
+
+    const result = await eventsApi.getAll(params);
+    if (result.data) {
+      setEvents(result.data.events);
+    }
+    setIsLoading(false);
   };
+
+  const fetchMyEvents = async () => {
+    const result = await eventsApi.getMy("registered");
+    if (result.data) {
+      setMyEvents(result.data.events);
+    }
+  };
+
+  const handleRegister = async (eventId: string) => {
+    const result = await eventsApi.register(eventId);
+    if (result.data) {
+      fetchEvents();
+      fetchMyEvents();
+    }
+  };
+
+  const handleUnregister = async (eventId: string) => {
+    await eventsApi.unregister(eventId);
+    fetchEvents();
+    fetchMyEvents();
+  };
+
+  const displayedEvents = activeTab === "my" ? myEvents : events;
+
+  const filteredEvents = searchQuery
+    ? displayedEvents.filter(
+        (e) =>
+          e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          e.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : displayedEvents;
 
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-neutral-100">
         <Navbar />
 
-        <main className="max-w-6xl mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-primary-100 rounded-lg">
-                    <Calendar className="h-6 w-6 text-primary-600" />
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-bold text-neutral-900">Événements</h1>
-                    <p className="text-neutral-500">Découvrez et participez à des événements professionnels</p>
-                  </div>
-                </div>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Créer un événement
-                </Button>
-              </div>
+        <main className="max-w-7xl mx-auto px-4 py-6">
+          {/* Header */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-neutral-900">Événements</h1>
+              <p className="text-neutral-600">
+                Découvrez des événements professionnels près de chez vous
+              </p>
+            </div>
+            <Link href="/events/create">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Créer un événement
+              </Button>
+            </Link>
+          </div>
 
-              {/* Search and Filters */}
-              <Card>
-                <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Rechercher un événement..."
-                      className="w-full pl-10 pr-4 py-2 bg-neutral-100 border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    />
-                  </div>
-                  <button
-                    onClick={() => setShowOnlineOnly(!showOnlineOnly)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-                      showOnlineOnly
-                        ? "bg-primary-50 border-primary-300 text-primary-700"
-                        : "bg-white border-neutral-200 text-neutral-600"
-                    }`}
-                  >
-                    <Video className="h-4 w-4" />
-                    En ligne
-                  </button>
-                </div>
+          {/* Tabs */}
+          <div className="flex gap-4 mb-6">
+            <button
+              onClick={() => setActiveTab("discover")}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeTab === "discover"
+                  ? "bg-primary-500 text-white"
+                  : "bg-white text-neutral-600 hover:bg-neutral-50"
+              }`}
+            >
+              Découvrir
+            </button>
+            <button
+              onClick={() => setActiveTab("my")}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                activeTab === "my"
+                  ? "bg-primary-500 text-white"
+                  : "bg-white text-neutral-600 hover:bg-neutral-50"
+              }`}
+            >
+              Mes événements ({myEvents.length})
+            </button>
+          </div>
 
-                <div className="flex gap-2 border-b border-neutral-200 -mx-4 px-4">
-                  <button
-                    onClick={() => setActiveTab("upcoming")}
-                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                      activeTab === "upcoming"
-                        ? "border-primary-500 text-primary-600"
-                        : "border-transparent text-neutral-500 hover:text-neutral-700"
-                    }`}
-                  >
-                    À venir
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("my-events")}
-                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                      activeTab === "my-events"
-                        ? "border-primary-500 text-primary-600"
-                        : "border-transparent text-neutral-500 hover:text-neutral-700"
-                    }`}
-                  >
-                    Mes événements ({myEvents.length})
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("past")}
-                    className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                      activeTab === "past"
-                        ? "border-primary-500 text-primary-600"
-                        : "border-transparent text-neutral-500 hover:text-neutral-700"
-                    }`}
-                  >
-                    Passés
-                  </button>
-                </div>
-              </Card>
-
-              {/* Categories */}
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {categories.map((category) => (
-                  <button
-                    key={category}
-                    onClick={() => setSelectedCategory(category)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                      selectedCategory === category
-                        ? "bg-primary-500 text-white"
-                        : "bg-white text-neutral-600 hover:bg-neutral-50"
-                    }`}
-                  >
-                    {category}
-                  </button>
-                ))}
-              </div>
-
-              {/* Events List */}
-              <div className="space-y-4">
-                {filteredEvents.length === 0 ? (
-                  <Card className="text-center py-12">
-                    <Calendar className="h-12 w-12 text-neutral-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-neutral-700 mb-2">
-                      Aucun événement trouvé
-                    </h3>
-                    <p className="text-neutral-500">
-                      {activeTab === "my-events"
-                        ? "Vous n'êtes inscrit à aucun événement"
-                        : "Essayez une autre recherche ou catégorie"}
-                    </p>
-                  </Card>
-                ) : (
-                  filteredEvents.map((event) => (
-                    <Card key={event.id} className="hover:shadow-md transition-shadow overflow-hidden">
-                      <div className="flex flex-col sm:flex-row gap-4">
-                        {/* Date Badge */}
-                        <div className="flex-shrink-0 flex sm:flex-col items-center sm:items-start gap-2 sm:gap-0">
-                          <div className="bg-primary-500 text-white px-3 py-2 rounded-lg text-center min-w-[60px]">
-                            <div className="text-2xl font-bold">{new Date(event.date).getDate()}</div>
-                            <div className="text-xs uppercase">
-                              {new Date(event.date).toLocaleDateString("fr-FR", { month: "short" })}
-                            </div>
-                          </div>
-                          <div className="text-sm text-neutral-500 sm:mt-2 sm:text-center">
-                            <Clock className="h-4 w-4 inline mr-1" />
-                            {event.time}
-                          </div>
-                        </div>
-
-                        {/* Event Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <h3 className="font-semibold text-neutral-900">{event.title}</h3>
-                              <p className="text-sm text-neutral-500 mt-1">{event.organizer.name}</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {event.isOnline ? (
-                                <Badge variant="secondary" className="flex items-center gap-1">
-                                  <Video className="h-3 w-3" />
-                                  En ligne
-                                </Badge>
-                              ) : (
-                                <Badge variant="neutral">{event.category}</Badge>
-                              )}
-                            </div>
-                          </div>
-
-                          <p className="text-sm text-neutral-600 mt-2 line-clamp-2">{event.description}</p>
-
-                          <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-neutral-500">
-                            {event.location && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="h-4 w-4" />
-                                {event.location}
-                              </span>
-                            )}
-                            <span className="flex items-center gap-1">
-                              <Users className="h-4 w-4" />
-                              {event.attendeeCount}
-                              {event.maxAttendees && ` / ${event.maxAttendees}`} participants
-                            </span>
-                            {!event.isFree && (
-                              <span className="flex items-center gap-1 text-primary-600 font-medium">
-                                <Ticket className="h-4 w-4" />
-                                {event.price} EUR
-                              </span>
-                            )}
-                            {event.isFree && (
-                              <Badge variant="success">Gratuit</Badge>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-3 mt-4">
-                            {event.isRegistered ? (
-                              <>
-                                <Badge variant="success" className="flex items-center gap-1">
-                                  <Star className="h-3 w-3" />
-                                  Inscrit
-                                </Badge>
-                                <Link href={`/events/${event.id}`}>
-                                  <Button size="sm" variant="outline">
-                                    <ExternalLink className="h-4 w-4 mr-1" />
-                                    Voir les détails
-                                  </Button>
-                                </Link>
-                              </>
-                            ) : (
-                              <Button size="sm">
-                                S&apos;inscrire
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  ))
-                )}
+          {/* Filters */}
+          <div className="bg-white rounded-lg p-4 mb-6 flex flex-wrap gap-4">
+            <div className="flex-1 min-w-[200px]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+                <input
+                  type="text"
+                  placeholder="Rechercher un événement..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
               </div>
             </div>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              {eventTypes.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+            <select
+              value={formatFilter}
+              onChange={(e) => setFormatFilter(e.target.value)}
+              className="px-4 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              {eventFormats.map((format) => (
+                <option key={format.value} value={format.value}>
+                  {format.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {/* Calendar Widget */}
-              <Card>
-                <h3 className="font-semibold text-neutral-900 mb-4">Ce mois-ci</h3>
-                <div className="text-center mb-4">
-                  <p className="text-3xl font-bold text-primary-600">{upcomingEvents.length}</p>
-                  <p className="text-neutral-500">événements à venir</p>
-                </div>
-                <div className="space-y-2">
-                  {myEvents.slice(0, 3).map((event) => (
-                    <div key={event.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-neutral-50">
-                      <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="font-semibold text-primary-600">
-                          {new Date(event.date).getDate()}
+          {/* Events Grid */}
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary-500" />
+            </div>
+          ) : filteredEvents.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-lg">
+              <Calendar className="h-12 w-12 text-neutral-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-neutral-900 mb-2">
+                {activeTab === "my"
+                  ? "Vous n'êtes inscrit à aucun événement"
+                  : "Aucun événement trouvé"}
+              </h3>
+              <p className="text-neutral-600">
+                {activeTab === "my"
+                  ? "Explorez les événements disponibles et inscrivez-vous !"
+                  : "Soyez le premier à créer un événement !"}
+              </p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredEvents.map((event) => (
+                <Card key={event.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                  {event.coverImage ? (
+                    <div className="h-40 bg-gradient-to-br from-primary-400 to-primary-600 relative">
+                      <img
+                        src={event.coverImage}
+                        alt={event.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-40 bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center">
+                      <Calendar className="h-16 w-16 text-white/50" />
+                    </div>
+                  )}
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 text-sm text-neutral-500 mb-2">
+                      <span className="px-2 py-0.5 bg-primary-100 text-primary-700 rounded-full text-xs">
+                        {event.type}
+                      </span>
+                      {event.format === "ONLINE" && (
+                        <span className="flex items-center gap-1">
+                          <Video className="h-3 w-3" /> En ligne
                         </span>
+                      )}
+                    </div>
+                    <Link href={`/events/${event.id}`}>
+                      <h3 className="font-semibold text-neutral-900 mb-2 line-clamp-2 hover:text-primary-500">
+                        {event.title}
+                      </h3>
+                    </Link>
+                    <div className="space-y-1 text-sm text-neutral-600 mb-4">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        <span>{formatEventDate(event.startDate)}</span>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-neutral-900 text-sm truncate">{event.title}</p>
-                        <p className="text-xs text-neutral-500">{event.time}</p>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        <span>{formatEventTime(event.startDate)}</span>
+                      </div>
+                      {event.location && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          <span className="truncate">{event.location}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        <span>{event.attendeesCount} participants</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </Card>
-
-              {/* Featured Event */}
-              <Card className="bg-gradient-to-br from-primary-500 to-primary-700 text-white">
-                <div className="flex items-start gap-3">
-                  <Star className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="font-semibold">Événement vedette</h4>
-                    <p className="text-sm text-primary-100 mt-1">
-                      Conférence DevOps France 2025 - La plus grande conférence DevOps francophone
-                    </p>
-                    <Button size="sm" variant="secondary" className="mt-3 bg-white text-primary-700 hover:bg-primary-50">
-                      En savoir plus
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-
-              {/* Create Event CTA */}
-              <Card>
-                <h3 className="font-semibold text-neutral-900 mb-2">Organisez un événement</h3>
-                <p className="text-sm text-neutral-500 mb-4">
-                  Créez votre propre événement et rassemblez votre communauté professionnelle
-                </p>
-                <Button variant="outline" className="w-full">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Créer un événement
-                </Button>
-              </Card>
+                    <div className="flex items-center justify-between pt-3 border-t border-neutral-100">
+                      <div className="flex items-center gap-2">
+                        <Avatar
+                          name={`${event.organizer.firstName} ${event.organizer.lastName}`}
+                          src={event.organizer.avatarUrl}
+                          size="sm"
+                        />
+                        <span className="text-sm text-neutral-600">
+                          {event.organizer.firstName}
+                        </span>
+                      </div>
+                      {event.isRegistered ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleUnregister(event.id)}
+                        >
+                          Se désinscrire
+                        </Button>
+                      ) : (
+                        <Button size="sm" onClick={() => handleRegister(event.id)}>
+                          S'inscrire
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </div>
+          )}
         </main>
+
+        <Footer />
       </div>
     </ProtectedRoute>
   );

@@ -108,7 +108,7 @@ export function Navbar() {
               >
                 <div className="relative">
                   <item.icon className="h-5 w-5" />
-                  {item.badge > 0 && (
+                  {item.badge !== undefined && item.badge > 0 && (
                     <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
                       {item.badge > 9 ? "9+" : item.badge}
                     </span>
@@ -214,7 +214,7 @@ export function Navbar() {
               >
                 <item.icon className="h-5 w-5" />
                 <span>{item.label}</span>
-                {item.badge > 0 && (
+                {item.badge !== undefined && item.badge > 0 && (
                   <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
                     {item.badge}
                   </span>

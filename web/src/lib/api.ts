@@ -655,3 +655,194 @@ export const uploadApi = {
     }
   },
 };
+
+// ============================================
+// STATS API
+// ============================================
+
+export interface PublicStats {
+  users: number;
+  companies: number;
+  jobs: number;
+  posts: number;
+}
+
+export const statsApi = {
+  getPublic: () => api.get<PublicStats>('/api/stats/public'),
+};
+
+// ============================================
+// EVENTS API
+// ============================================
+
+export interface Event {
+  id: string;
+  organizerId: string;
+  companyId?: string;
+  title: string;
+  description: string;
+  type: string;
+  format: string;
+  location?: string;
+  address?: string;
+  onlineUrl?: string;
+  startDate: string;
+  endDate?: string;
+  timezone: string;
+  coverImage?: string;
+  maxAttendees?: number;
+  price?: number;
+  currency?: string;
+  isPublished: boolean;
+  isCancelled: boolean;
+  createdAt: string;
+  updatedAt: string;
+  organizer: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl?: string;
+    headline?: string;
+  };
+  company?: {
+    id: string;
+    name: string;
+    logoUrl?: string;
+  };
+  attendeesCount: number;
+  isRegistered: boolean;
+  registrationStatus?: string;
+  tags?: Array<{ id: string; name: string }>;
+}
+
+export const eventsApi = {
+  getAll: (params?: { type?: string; format?: string; page?: number; limit?: number; upcoming?: boolean }) => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) searchParams.set(key, String(value));
+      });
+    }
+    return api.get<{ events: Event[]; total: number; page: number; totalPages: number }>(
+      `/api/events?${searchParams.toString()}`
+    );
+  },
+
+  getMy: (type?: 'registered' | 'organized') =>
+    api.get<{ events: Event[] }>(`/api/events/my${type ? `?type=${type}` : ''}`),
+
+  getById: (id: string) => api.get<Event>(`/api/events/${id}`),
+
+  create: (data: Partial<Event> & { tags?: string[] }) =>
+    api.post<Event>('/api/events', data),
+
+  update: (id: string, data: Partial<Event>) =>
+    api.patch<Event>(`/api/events/${id}`, data),
+
+  delete: (id: string) => api.delete(`/api/events/${id}`),
+
+  register: (id: string) =>
+    api.post<{ message: string; status: string }>(`/api/events/${id}/register`, {}),
+
+  unregister: (id: string) => api.delete(`/api/events/${id}/register`),
+};
+
+// ============================================
+// GROUPS API
+// ============================================
+
+export interface Group {
+  id: string;
+  ownerId: string;
+  name: string;
+  slug: string;
+  description?: string;
+  type: string;
+  category?: string;
+  avatarUrl?: string;
+  bannerUrl?: string;
+  rules?: string;
+  createdAt: string;
+  updatedAt: string;
+  owner: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl?: string;
+    headline?: string;
+  };
+  membersCount: number;
+  postsCount: number;
+  isJoined: boolean;
+  memberRole?: string;
+  members?: Array<{
+    user: {
+      id: string;
+      firstName: string;
+      lastName: string;
+      avatarUrl?: string;
+    };
+  }>;
+}
+
+export interface GroupPost {
+  id: string;
+  groupId: string;
+  authorId: string;
+  content: string;
+  isPinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+  author: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl?: string;
+    headline?: string;
+  };
+}
+
+export const groupsApi = {
+  getAll: (params?: { category?: string; type?: string; search?: string; page?: number; limit?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) searchParams.set(key, String(value));
+      });
+    }
+    return api.get<{ groups: Group[]; total: number; page: number; totalPages: number }>(
+      `/api/groups?${searchParams.toString()}`
+    );
+  },
+
+  getMy: () => api.get<{ groups: Group[] }>('/api/groups/my'),
+
+  getById: (id: string) => api.get<Group>(`/api/groups/${id}`),
+
+  create: (data: Partial<Group>) => api.post<Group>('/api/groups', data),
+
+  update: (id: string, data: Partial<Group>) =>
+    api.patch<Group>(`/api/groups/${id}`, data),
+
+  delete: (id: string) => api.delete(`/api/groups/${id}`),
+
+  join: (id: string) =>
+    api.post<{ message: string }>(`/api/groups/${id}/join`, {}),
+
+  leave: (id: string) => api.delete(`/api/groups/${id}/join`),
+
+  getPosts: (id: string, params?: { page?: number; limit?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) searchParams.set(key, String(value));
+      });
+    }
+    return api.get<{ posts: GroupPost[]; total: number; page: number; totalPages: number }>(
+      `/api/groups/${id}/posts?${searchParams.toString()}`
+    );
+  },
+
+  createPost: (id: string, content: string) =>
+    api.post<GroupPost>(`/api/groups/${id}/posts`, { content }),
+};
