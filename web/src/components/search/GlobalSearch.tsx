@@ -44,8 +44,8 @@ export function GlobalSearch({
   useEffect(() => {
     async function loadTrending() {
       const { data } = await searchApi.trending();
-      if (data && data.trending) {
-        setTrending(data.trending);
+      if (data && Array.isArray(data)) {
+        setTrending(data.map((item) => `#${item.hashtag?.name || ''}`).filter(Boolean));
       }
     }
     loadTrending();
